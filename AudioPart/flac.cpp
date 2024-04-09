@@ -5,17 +5,27 @@
 #include <cstring>
 #include <cmath>
 #include <algorithm>
+#include <chrono>
 
-static constexpr size_t order = 10; // Порядок LPC модели
-static constexpr int k = 20; // Параметр кода Райса
+static constexpr int sizeBlocks = 16384 * 8; // Size of blocks (INT32_MAX for 1 block)
+static constexpr int order = 10;            // LPC model order
+static constexpr int k = 5;                // Rice code parameter
+
+struct Information {
+    double compression;
+    std::chrono::milliseconds time;
+    std::vector<int> consts;
+
+    Information(double compression, std::chrono::milliseconds time, std::vector<int> consts): compression(compression), time(time), consts(consts) {};
+};
 
 struct BitStream {
     std::vector<uint8_t> data;
     int bitIndex;
 
-    BitStream() : bitIndex(0) {}
+    BitStream(): bitIndex(0) {}
 
-    BitStream(std::vector<uint8_t> data) : bitIndex(0), data(data) {}
+    BitStream(std::vector<uint8_t> data): bitIndex(0), data(data) {}
 
     void addBit(bool bit) {
         if (bitIndex % 8 == 0) {
@@ -72,15 +82,10 @@ bool readWAVHeader(const std::string& filename, WAVHeader& header) {
         file.read(reinterpret_cast<char*>(&(header.subchunk2Size)), sizeof(int32_t));
     }
     file.close();
-
-    std::cout << header.subchunk2Size << " " << header.numChannels << "\n";
-    std::cout << header.sampleRate << " " << header.byteRate << "\n";
-    std::cout << header.blockAlign << " " << header.bitsPerSample << "\n" << std::endl;
-
     return true;
 }
 
-std::vector<int16_t> readWAVData(const std::string& filename, const WAVHeader& header) {
+std::vector<int16_t> readWAVData(const std::string& filename, const WAVHeader& header, int startIndex) {
     std::ifstream file(filename, std::ios::binary);
     if (!file.is_open()) {
         std::cerr << "Failed to open file: " << filename << std::endl;
@@ -88,6 +93,7 @@ std::vector<int16_t> readWAVData(const std::string& filename, const WAVHeader& h
     }
 
     file.seekg(sizeof(WAVHeader), std::ios::beg);
+    file.seekg(startIndex * sizeof(int16_t), std::ios::cur);
 
 
     if (header.subchunk2Size % sizeof(int16_t) != 0) {
@@ -95,15 +101,23 @@ std::vector<int16_t> readWAVData(const std::string& filename, const WAVHeader& h
         return {};
     }
 
-    std::vector<int16_t> audioData(header.subchunk2Size / sizeof(int16_t));
-    file.read(reinterpret_cast<char*>(audioData.data()), header.subchunk2Size);
+    std::vector<int16_t> audioData;
+    if (header.subchunk2Size / sizeof(int16_t) >= startIndex + sizeBlocks) {
+        audioData.resize(sizeBlocks);
+        file.read(reinterpret_cast<char*>(audioData.data()), sizeBlocks * sizeof(int16_t));
+    } else {
+        audioData.resize(header.subchunk2Size / sizeof(int16_t) - startIndex);
+        file.read(reinterpret_cast<char*>(audioData.data()), header.subchunk2Size - sizeof(int16_t) * startIndex);
+    }
+
     file.close();
     return audioData;
 }
 
+// Linear predictive coding
 class LPC {
 public:
-    std::vector<double> coeffs; // Коэффициенты LPC
+    std::vector<double> coeffs; // Coefficients LPC
 
     LPC() {}
     LPC(std::vector<double> coeffs) : coeffs(coeffs) {}
@@ -112,7 +126,7 @@ public:
         int N = input.size();
         coeffs.resize(order + 1, 0);
 
-        std::vector<double> r(order + 1, 0); // Автокорреляционная последовательность
+        std::vector<double> r(order + 1, 0); // Autocorrelation sequence
 
         for (int i = 0; i <= order; ++i) {
             for (int j = 0; j < N - i; ++j) {
@@ -120,7 +134,7 @@ public:
             }
         }
 
-        // Выполняем метод Левинсона-Дурбина для нахождения коэффициентов LPC
+        // We perform the Levinson-Durbin method to find the LPC coefficients                                                                                                                                       
         std::vector<double> alpha(order + 1, 0);
         std::vector<double> kappa(order + 1, 0);
         std::vector<double> Am1(order + 1, 0);
@@ -223,53 +237,119 @@ std::vector<int16_t> decodeVector(std::vector<uint8_t> data) {
     return decoded;
 }
 
-std::vector<uint8_t> convertToFLAC(const std::vector<int16_t>& pcmData) {
-    LPC lpc;
-    lpc.train(pcmData);
-
-    std::vector<int16_t> data;
-    data.reserve(pcmData.size() + (order + 1) * 4);
-
-
-    for (size_t i = 0; i < order + 1; ++i) {
-        int16_t arr[4] = {};
-        std::memcpy(arr, &lpc.coeffs[i], sizeof(double));
-        data.push_back(arr[0]);
-        data.push_back(arr[1]);
-        data.push_back(arr[2]);
-        data.push_back(arr[3]);
+Information* convertToFLAC(std::string inputFilename, std::string outputFilename) {
+    auto start = std::chrono::high_resolution_clock::now();
+    WAVHeader header;
+    if (!readWAVHeader(inputFilename, header)) {
+        std::cerr << "Failed to read WAV file." << std::endl;
+        return nullptr;
     }
+    BitStream stream;
+    size_t size = 0;
+    for (int i = 0; header.subchunk2Size / sizeof(int16_t) > i * sizeBlocks; ++i) {
+        std::vector<int16_t> pcmData = readWAVData(inputFilename, header, sizeBlocks * i);
 
-    std::cout << pcmData.size() << " "<< std::endl;
-    for (size_t i = 0; i < pcmData.size(); ++i) {
-        data.push_back(pcmData[i] - lpc.predict(pcmData, i));
+        LPC lpc;
+        lpc.train(pcmData);
+
+        for (size_t j = 0; j < order + 1; ++j) {
+            int16_t arr[4] = {};
+            std::memcpy(arr, &lpc.coeffs[j], sizeof(double));
+            riceEncode(stream, arr[0]);
+            riceEncode(stream, arr[1]);
+            riceEncode(stream, arr[2]);
+            riceEncode(stream, arr[3]);
+        }
+
+        for (size_t j = 0; j < pcmData.size(); ++j) {
+            riceEncode(stream, pcmData[j] - lpc.predict(pcmData, j));
+        }
     }
-
-    return encodeVector(data);
+    std::ofstream outputFile(outputFilename, std::ios::binary);
+    if (outputFile.is_open()) {
+        outputFile.write(reinterpret_cast<const char*>(&header), sizeof(WAVHeader));
+        size = stream.data.size();
+        outputFile.write(reinterpret_cast<const char*>(&size), sizeof(size_t));
+        outputFile.write(reinterpret_cast<const char*>(stream.data.data()), size);
+        outputFile.close();
+        std::cout << "FLAC data saved to: " << outputFilename << std::endl;
+    } else {
+        std::cerr << "Failed to write FLAC file." << std::endl;
+        return nullptr;
+    }
+    std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
+    std::vector<int> consts(3);
+    consts[0] = sizeBlocks;
+    consts[1] = order;
+    consts[2] = k;
+    return new Information((double)header.subchunk2Size/(double)size, std::chrono::duration_cast<std::chrono::milliseconds>(end - start), consts);
 }
 
-std::vector<int16_t> convertFromFLAC(const std::vector<uint8_t>& flacData) {
-    std::vector<int16_t> data = decodeVector(flacData);
+Information* convertFromFLAC(std::string inputFilename, std::string outputFilename) {
+    auto start = std::chrono::high_resolution_clock::now();
+    std::ofstream outputFile(outputFilename, std::ios::binary);
+    std::ifstream inputFile(inputFilename, std::ios::binary);
 
-    std::vector<double> lpccoeffs;
-    lpccoeffs.reserve(order + 1);
-    for (size_t i = 0; i < order + 1; ++i) {
-        double coefficient;
-        std::memcpy(&coefficient, &data[4*i], sizeof(double));
-        lpccoeffs.push_back(coefficient);
+    size_t size;
+    WAVHeader header;
+    std::vector<double> lpccoeffs(order + 1);
+    std::vector<uint8_t> flacData;
+    if (inputFile.is_open()) {
+
+        inputFile.read(reinterpret_cast<char*>(&header), sizeof(WAVHeader));
+
+        if (outputFile.is_open()) {
+            outputFile.write(reinterpret_cast<const char*>(&header), sizeof(WAVHeader));
+        } else {
+            std::cerr << "Failed to write WAV file." << std::endl;
+            return nullptr;
+        }
+
+        inputFile.read(reinterpret_cast<char*>(&size), sizeof(size_t));
+        flacData.reserve(size);
+        flacData.resize(size);
+        inputFile.read(reinterpret_cast<char*>(flacData.data()), size);
+        inputFile.close();
+
+        std::vector<int16_t> data = decodeVector(flacData);
+
+        for (int i = 0; header.subchunk2Size / sizeof(int16_t) > i * sizeBlocks; ++i) {
+            std::vector<double> lpccoeffs(order + 1);
+            for (size_t j = 0; j < order + 1; ++j) {
+                double coefficient;
+                std::memcpy(&coefficient, &data[i * (sizeBlocks + (order + 1) * 4) + 4 * j], sizeof(double));
+                lpccoeffs[j] = coefficient;
+            }
+
+            LPC lpc(lpccoeffs);
+
+            std::vector<int16_t> pcmData;
+            int shift = i * sizeBlocks + (i + 1) * 4 * (order + 1);
+            int pcmSize = data.size() - shift >= sizeBlocks ? sizeBlocks : data.size() - shift;
+            pcmData.reserve(pcmSize);
+            for (size_t j = 0; j < pcmSize; ++j) {
+                pcmData.push_back(lpc.predict(pcmData, j) + data[j + shift]);
+            }
+
+            if (outputFile.is_open()) {
+                outputFile.write(reinterpret_cast<const char*>(pcmData.data()), pcmData.size() * sizeof(int16_t));
+            } else {
+                std::cerr << "Failed to write WAV file." << std::endl;
+                return nullptr;
+            }
+        }
+        std::cout << "WAV data saved to: " << outputFilename << std::endl;
+        outputFile.close();
+    } else {
+        std::cerr << "Failed to read FLAC file." << std::endl;
+        return nullptr;
     }
-
-    LPC lpc(lpccoeffs);
-
-    std::vector<int16_t> pcmData;
-    int shift = (order + 1) * 4;
-    std::cout << data.size() - shift << " "<< std::endl;
-    pcmData.reserve(data.size() - shift);
-    for (size_t i = 0; i < data.size() - shift; ++i) {
-        pcmData.push_back(lpc.predict(pcmData, i) + data[i + shift]);
-    }
-
-    return pcmData;
+    std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
+    std::vector<int> consts(3);
+    consts[0] = sizeBlocks;
+    consts[1] = order;
+    consts[2] = k;
+    return new Information((double)header.subchunk2Size/(double)size, std::chrono::duration_cast<std::chrono::milliseconds>(end - start), consts);
 }
 
 int main() {
@@ -277,41 +357,10 @@ int main() {
     std::string outputFilename = "example.flac";
     std::string outputFilename2 = "exampleAfter.wav";
 
-    WAVHeader header;
-    std::vector<int16_t> pcmData;
-    if (readWAVHeader(inputFilename, header)) {
-        pcmData = readWAVData(inputFilename, header);
-    } else {
-        std::cerr << "Failed to read WAV file." << std::endl;
-        return 1;
-    }
 
-    //------------------------------------------------------------------------
-    std::vector<uint8_t> flacData = convertToFLAC(pcmData);
+    std::cout << convertToFLAC(inputFilename, outputFilename)->time.count() << "\n";
 
-    std::ofstream outputFile(outputFilename, std::ios::binary);
-    if (outputFile.is_open()) {
-        outputFile.write(reinterpret_cast<const char*>(flacData.data()), flacData.size());
-        outputFile.close();
-        std::cout << "FLAC data saved to: " << outputFilename << std::endl;
-    } else {
-        std::cerr << "Failed to write FLAC file." << std::endl;
-        return 1;
-    }
-
-    //------------------------------------------------------------------------
-    std::vector<int16_t> pcmData2 = convertFromFLAC(flacData);
-
-    std::ofstream outputFile2(outputFilename2, std::ios::binary);
-    if (outputFile2.is_open()) {
-        outputFile2.write(reinterpret_cast<const char*>(&header), sizeof(header));
-        outputFile2.write(reinterpret_cast<const char*>(pcmData2.data()), pcmData2.size() * sizeof(int16_t));
-        outputFile2.close();
-        std::cout << "FLAC data saved to: " << outputFilename2 << std::endl;
-    } else {
-        std::cerr << "Failed to write FLAC file." << std::endl;
-        return 1;
-    }
+    std::cout << convertFromFLAC(outputFilename, outputFilename2)->time.count() << "\n";
 
     return 0;
 }

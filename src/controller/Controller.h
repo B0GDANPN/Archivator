@@ -6,9 +6,12 @@
 #define ARCHIVATOR_CONTROLLER_H
 
 
+#include <string>
+#pragma once
 class Controller {
 public:
     static void run(int argc, char *argv[]);
+    static void sendMesssage(const std::string& message);
 };
 
 

@@ -17,5 +17,7 @@ struct Dto {
 
     explicit Dto(std::string name, bool action, std::vector<std::string> options);
 };
-
+std::string toStr(const Dto& dto){
+    dto.options_.
+}
 #endif //ARCHIVATOR_DTO_H

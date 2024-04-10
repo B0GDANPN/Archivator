@@ -5,7 +5,7 @@
 #include "Parser.h"
 #include <filesystem>
 #include <fstream>
-
+#include "../controller/Controller.h"
 std::vector<Dto> Parser::parse(const std::vector<std::string> &lines) {
     std::istringstream iss;
     std::vector<Dto> result;
@@ -19,6 +19,8 @@ std::vector<Dto> Parser::parse(const std::vector<std::string> &lines) {
         }
         std::string nameOfFileOrDirectory = tokens[0];
         if (!isExist(nameOfFileOrDirectory)) {
+            
+            Controller::sendMesssage("File or directory doesn't exist\n");
             continue;
         }
         bool action = tokens[1] == "encode";///add exception input

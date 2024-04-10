@@ -6,7 +6,8 @@
 #include <cmath>
 #include <algorithm>
 #include <chrono>
-
+#include "../../src/controller/Controller.h"
+#include <sstream>
 static constexpr int sizeBlocks = 16384 * 8; // Size of blocks (INT32_MAX for 1 block)
 static constexpr int order = 10;            // LPC model order
 static constexpr int k = 5;                // Rice code parameter
@@ -14,10 +15,15 @@ static constexpr int k = 5;                // Rice code parameter
 struct Information {
     double compression;
     std::chrono::milliseconds time;
-    std::vector<int> consts;
+    int sizeBlocks,order,k;
+    Information(double compression, std::chrono::milliseconds time,int sizeBlocks, int order, int k): compression(compression), time(time), sizeBlocks(sizeBlocks), order(order), k(k) {};
 
-    Information(double compression, std::chrono::milliseconds time, std::vector<int> consts): compression(compression), time(time), consts(consts) {};
 };
+void sendInformation(Information info) {
+    std::ostringstream oss;
+    oss <<"FLAC{compression: " << info.compression << ", time: " << info.time.count() << ", sizeBlocks: " << info.sizeBlocks << ", order: " << info.order << ", k: " << info.k << "}";
+    Controller::sendMesssage(oss.str());
+}
 
 struct BitStream {
     std::vector<uint8_t> data;
@@ -278,11 +284,7 @@ Information* convertToFLAC(std::string inputFilename, std::string outputFilename
         return nullptr;
     }
     std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
-    std::vector<int> consts(3);
-    consts[0] = sizeBlocks;
-    consts[1] = order;
-    consts[2] = k;
-    return new Information((double)header.subchunk2Size/(double)size, std::chrono::duration_cast<std::chrono::milliseconds>(end - start), consts);
+    return new Information((double)header.subchunk2Size/(double)size, std::chrono::duration_cast<std::chrono::milliseconds>(end - start), sizeBlocks,order,k);
 }
 
 Information* convertFromFLAC(std::string inputFilename, std::string outputFilename) {
@@ -345,11 +347,7 @@ Information* convertFromFLAC(std::string inputFilename, std::string outputFilena
         return nullptr;
     }
     std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
-    std::vector<int> consts(3);
-    consts[0] = sizeBlocks;
-    consts[1] = order;
-    consts[2] = k;
-    return new Information((double)header.subchunk2Size/(double)size, std::chrono::duration_cast<std::chrono::milliseconds>(end - start), consts);
+    return new Information((double)header.subchunk2Size/(double)size,std::chrono::duration_cast<std::chrono::milliseconds>(end - start), sizeBlocks,order,k);
 }
 
 int main() {
@@ -357,10 +355,10 @@ int main() {
     std::string outputFilename = "example.flac";
     std::string outputFilename2 = "exampleAfter.wav";
 
-
-    std::cout << convertToFLAC(inputFilename, outputFilename)->time.count() << "\n";
-
-    std::cout << convertFromFLAC(outputFilename, outputFilename2)->time.count() << "\n";
+    Information* infoEncoded = convertToFLAC(inputFilename, outputFilename);
+    sendInformation(*infoEncoded);
+    Information* infoDecoded = convertFromFLAC(outputFilename, outputFilename2);
+    sendInformation(*infoDecoded);
 
     return 0;
 }

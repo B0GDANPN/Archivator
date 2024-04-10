@@ -3,9 +3,8 @@
 #include "Image.h"
 #include "IFSTransform.h"
 #include "Decoder.h"
-
 Decoder::Decoder(int width, int height, int channels) {
-    img.channels = channels;
+    img.channels =channels;
     img.width = width;
     img.height = height;
     img.originalSize = width * height * channels;

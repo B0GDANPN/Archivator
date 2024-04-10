@@ -21,8 +21,8 @@ using json = nlohmann::json;
 
 class FractalAlgo {
 public:
-    static void encode(int argc, char **argv) {
-        std::string fileName;
+    static void encode(const std::string& fileName,int quality) {
+        /*std::string fileName;
         int quality = 100;
         bool usage = true;
         for (int i = 1; i < argc && usage; i++) {
@@ -45,7 +45,7 @@ public:
             std::string str = oss.str();
             Controller::sendMesssage(str);
             exit(-1);
-        }
+        }*/
         auto *source = new Image();
         source->ImageSetup(fileName);
         auto *enc = new QuadTreeEncoder(quality);
@@ -60,10 +60,10 @@ public:
 
         std::string encodedName = source->fileName + "_encoded.json";
         SaveTransformsToJson(transforms, encodedName, source->extension, width, height);
-        int numTransforms = transforms->ch[0].size() +
+        size_t numTransforms = transforms->ch[0].size() +
                             transforms->ch[1].size() + transforms->ch[2].size();
-        int transformSize = numTransforms * sizeof(IFSTransform);
-        int ratio = width * height * 3 / (transformSize / sizeof(int));
+        size_t transformSize = numTransforms * sizeof(IFSTransform);
+        size_t ratio = width * height * 3 / (transformSize / sizeof(int));
         std::ostringstream oss;
         oss << "Reading image (width=" << width << " height=" << height << ")\n" <<
             "Number of transforms: " << numTransforms << "\n" <<
@@ -76,8 +76,8 @@ public:
         delete source;
     };
 
-    static void decode(int argc, char **argv) {
-        std::string fileName;
+    static void decode(const std::string& fileName,int phases) {
+        /*std::string fileName;
         int phases = 5;
         bool usage = true;
         for (int i = 1; i < argc && usage; i++) {
@@ -98,7 +98,7 @@ public:
             std::string str = oss.str();
             Controller::sendMesssage(str);
             exit(-1);
-        }
+        }*/
         int width, height;
         std::string extension;
         Transforms *transforms2;

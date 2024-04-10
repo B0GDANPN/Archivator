@@ -109,7 +109,7 @@ void IFSTransform::Execute(PixelValue *src, int srcWidth,
 
     if (!downsampled) {
         delete[]src;
-        nullptr;
+        src = nullptr;
     }
 }
 

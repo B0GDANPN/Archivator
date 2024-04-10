@@ -114,7 +114,7 @@ void Convert(Encoder *enc, Image *source, int maxphases) {
 
 int main(int argc, char **argv) {
     std::string fileName;
-    int threshhold = 100;
+    int quality = 100;
     bool symmetry = false;
     int phases = 5;
     bool usage = true;
@@ -124,7 +124,7 @@ int main(int argc, char **argv) {
         std::string param(argv[i]);
 
         if (param == "-t" && i + 1 < argc)
-            threshhold = std::stoi(argv[i + 1]);
+            quality = std::stoi(argv[i + 1]);
         else if (param == "-p" && i + 1 < argc)
             phases = std::stoi(argv[i + 1]);
         else if (param == "-f" && --i >= 0)
@@ -147,7 +147,7 @@ int main(int argc, char **argv) {
 
     auto *source = new Image();
     source->ImageSetup(fileName);
-    auto *enc = new QuadTreeEncoder(threshhold, symmetry);
+    auto *enc = new QuadTreeEncoder(quality, symmetry);
     Convert(enc, source, phases);
     delete enc;
     delete source;

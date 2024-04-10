@@ -17,7 +17,7 @@ AlgorithmEnum Selector::getAlgorithmFromName(const std::string &name) {
         return AlgorithmEnum::QUANTIZATION;
     } else if (extension == ".png" || extension == ".jpg" || extension == ".jpeg" || extension == ".bmp") {
         return AlgorithmEnum::FRACTAL;
-    } else if (extension == ".mp3") {//TODO Другие будут *wav..
+    } else if (extension == ".mp3") {//
         return AlgorithmEnum::FLAC;
     }
     return AlgorithmEnum::ERROR;//mp4

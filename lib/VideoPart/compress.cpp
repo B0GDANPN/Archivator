@@ -1,10 +1,11 @@
 #include "codec.h"
 #include "compress.h"
 #include <fstream>
+#include "logger.h"
 
 std::vector<uchar> compressMat(const cv::Mat& image) {
     if (image.empty()) {
-        std::cout << "Got empty image to compress!!!11!11!1" << std::endl;
+        logger << "Got empty image to compress!!!11!11!1" << std::endl;
         return {};
     }
 
@@ -36,7 +37,7 @@ void writeMatricesAndPoints(const std::vector<std::pair<cv::Point, cv::Mat>>& ma
     std::ofstream ofs(filename, std::ios::binary | std::ios::app);
 
     if (!ofs.is_open()) {
-        std::cout << "Failed to open file for writing!11!111!" << std::endl;
+        logger << "Failed to open file for writing!11!111!" << std::endl;
         return;
     }
 
@@ -123,7 +124,7 @@ void writeBufferToFile(const std::vector<cv::Vec3b>& buffer, const std::string& 
 
     std::ofstream outputFile(uniqueFilename, std::ios::binary);
     if (!outputFile.is_open()) {
-        std::cout << "Unable to open the file: " << uniqueFilename << std::endl;
+        logger << "Unable to open the file: " << uniqueFilename << std::endl;
         return;
     }
 
@@ -156,7 +157,7 @@ void insertMatrix(cv::Mat& bigMatrix, const cv::Mat& smallMatrix, cv::Point posi
     if (position.x < 0 || position.y < 0 ||
         position.x + smallMatrix.cols > bigMatrix.cols ||
         position.y + smallMatrix.rows > bigMatrix.rows) {
-        std::cout << "Error: Invalid position or size for insertion!11!!11" << std::endl;
+        logger << "Error: Invalid position or size for insertion!11!!11" << std::endl;
         return;
     }
 

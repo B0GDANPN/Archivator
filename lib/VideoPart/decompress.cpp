@@ -1,6 +1,7 @@
 #include "decompress.h"
 #include <fstream>
 #include "codec.h"
+#include "logger.h"
 
 std::vector<uchar> decompressMat(const std::vector<uchar>& compressedData) {
     std::vector<uchar> decompressedData;
@@ -22,7 +23,7 @@ MatrixInfo readNextMatrixAndPoint(const std::string& filename) {
     std::ifstream ifs(filename, std::ios::binary);
 
     if (!ifs.is_open()) {
-        std::cout << "Failed to open file " << filename << " for reading1!1!!11!1" << std::endl;
+        logger << "Failed to open file " << filename << " for reading1!1!!11!1" << std::endl;
         exit(0);
     }
 
@@ -63,7 +64,7 @@ std::vector<cv::Vec3b> decodeBufferFromFile(const std::string& filename) {
     std::vector<cv::Vec3b> decodedBuffer;
     std::ifstream inputFile(filename, std::ios::binary);
     if (!inputFile.is_open()) {
-        std::cout << "Failed to open the file while decoding from buffer: " << filename << std::endl;
+        logger << "Failed to open the file while decoding from buffer: " << filename << std::endl;
         return decodedBuffer;
     }
 
@@ -105,24 +106,24 @@ void decode(const std::string& framedata, const std::string& matdata,
     if (std::getline(frame, line)) {
         std::istringstream ss(line);
         if (ss >> rows >> delimiter >> cols && delimiter == ',') {
-            std::cout << "Decoding: reading succes" << std::endl;
+            logger << "Decoding: reading succes" << std::endl;
         }
         else {
-            std::cout << "Decoding: Not enough data" << std::endl;
+            logger << "Decoding: Not enough data" << std::endl;
             exit(1);
         }
     }
     else {
-        std::cout << "Decoding: reading failed" << std::endl;
+        logger << "Decoding: reading failed" << std::endl;
         exit(-2);
     }
 
-    std::cout << rows << " " << cols << std::endl;
+    logger << rows << " " << cols << std::endl;
     cv::Mat main(rows, cols, CV_8UC3, cv::Scalar(0, 0, 255));
 
     cv::VideoWriter videoWriter(output, cv::VideoWriter::fourcc('H', '2', '5', '6'), 30, cv::Size(cols, rows));
     if (!videoWriter.isOpened()) {
-        std::cout << "Unable to open the VideoWriter" << std::endl;
+        logger << "Unable to open the VideoWriter" << std::endl;
         return;
     }
 
@@ -130,7 +131,7 @@ void decode(const std::string& framedata, const std::string& matdata,
     int scene = 0;
     while (std::getline(frame, line)) {
         std::istringstream ss(line);
-        std::cout << "Decoding scene: " << ++scene;
+        logger << "Decoding scene: " << ++scene << std::endl;
         if (ss >> from >> delimiter >> to >> delimiter >> matrixCount && delimiter == ',') {
             int frames = to - from;
             std::vector<cv::Rect> reserved;
@@ -141,7 +142,7 @@ void decode(const std::string& framedata, const std::string& matdata,
                 reserved.push_back(roi);
                 sub.copyTo(main(roi));
                 if (c.data.empty()) {
-                    std::cout << "Error: Not enough matrix data " << std::endl;
+                    logger << "Error: Not enough matrix data " << std::endl;
                     exit(3);
                 }
             }
@@ -167,7 +168,7 @@ void decode(const std::string& framedata, const std::string& matdata,
             }
         }
         else {
-            std::cout << "Decoding: cann't read framedata.bin" << std::endl;
+            logger << "Decoding: cann't read framedata.bin" << std::endl;
             exit(4);
         }
     }

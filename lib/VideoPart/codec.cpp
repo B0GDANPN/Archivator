@@ -4,20 +4,26 @@
 #include "codec.h"
 #include "compress.h"
 #include "decompress.h"
-
+#include "logger.h"
 
 int main(int argc, char* argv[]) {
 
-
+    std::string framedata = "sampleZip/framedata.csv";
+    std::string matdata = "sampleZip/matdata.bin";
+    std::string subframedata = "sampleZip/subframe/";
+    
     std::string command = argv[1];
 
+    //logger.switchToConsole();
+    logger.switchToFile();
+
     if (command == "encode") {
-        std::cout << "Encoding..." << std::endl;
+        logger << "Encoding..." << std::endl;
         std::ofstream ofs("sampleZip/framedata.csv");
         cv::VideoCapture cap("sample2.mp4");
 
         if (!cap.isOpened()) {
-            std::cout << "Failed to open the video file." << std::endl;
+            logger << "Failed to open the video file." << std::endl;
             return -1;
         }
 
@@ -31,7 +37,7 @@ int main(int argc, char* argv[]) {
         size_t sum;
         bool end_flag = false;
 
-        std::cout << frame.size << std::endl;
+        logger << frame.size << std::endl;
         ofs << frame.rows << "," << frame.cols << std::endl;
 
         while (!frame.empty()) {
@@ -50,11 +56,13 @@ int main(int argc, char* argv[]) {
 
             if (start_scene == cap.get(cv::CAP_PROP_FRAME_COUNT) - 1) break;
 
-
             auto matricies = splitMatrices(frame, dst, NOIZES_PER_SUBFRAME);
 
-            std::cout << "Frames from " << start_scene << " to " << end_scene \
-                << " Count of mats " << matricies.size() << std::endl;
+            logger << "Frames from " << start_scene 
+                << " to " << end_scene 
+                << " Count of mats " << matricies.size() 
+                << std::endl;
+            
             ofs << start_scene << "," << end_scene << "," << matricies.size() << std::endl;
 
             writeMatricesAndPoints(matricies, "sampleZip/matdata.bin");
@@ -69,20 +77,25 @@ int main(int argc, char* argv[]) {
             }
             cap.read(frame);
             std::string filename = "sampleZip/subframe/";
-            std::cout << "Size of buffer: " << subFrameBuffer.size() * sizeof(cv::Vec3b) / 1024 << std::endl;
+            logger << "Size of buffer: " << subFrameBuffer.size() * sizeof(cv::Vec3b) / 1024 << std::endl;
             writeBufferToFile(subFrameBuffer, filename);
         }
+        logger << "Time for encoding: " << logger.elapsedTime() << " ms" << std::endl;
+        logger << "Params: " << SPLIT_DEPTH << " " 
+                             << NOIZES << " " 
+                             << NOIZES_PER_SUBFRAME << std::endl;
     }
     else if (command == "decode") {
-        std::string framedata = "sampleZip/framedata.csv";
-        std::string matdata = "sampleZip/matdata.bin";
-        std::string subframedata = "sampleZip/subframe/";
-        std::cout << "Decoding" << std::endl;
+        logger << "Decoding" << std::endl;
         decode(framedata, matdata, subframedata, "output1.mp4");
+        logger << "Time for decoding: " << logger.elapsedTime() << " ms" << std::endl;
+        logger << "Params: " << SPLIT_DEPTH << " "
+            << NOIZES << " "
+            << NOIZES_PER_SUBFRAME << std::endl;
         return 0;
     }
     else {
-        std::cout << "Unknown command" << std::endl;
+        logger << "Unknown command" << std::endl;
     }
 
     return 0;

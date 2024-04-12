@@ -20,6 +20,8 @@
 using json = nlohmann::json;
 
 class FractalAlgo {
+private:
+    static std::ostringstream oss;
 public:
     static void encode(const std::string& fileName,int quality) {
         /*std::string fileName;
@@ -39,7 +41,6 @@ public:
         }
 
         if (usage) {
-            std::ostringstream oss;
             oss << "Usage: %s [-t #] filename for encoding\n"
                    "\t-t 100  quality (i.e. quality) for encoding\n"<<argv[0]<<'\n';
             std::string str = oss.str();
@@ -64,7 +65,6 @@ public:
                             transforms->ch[1].size() + transforms->ch[2].size();
         size_t transformSize = numTransforms * sizeof(IFSTransform);
         size_t ratio = width * height * 3 / (transformSize / sizeof(int));
-        std::ostringstream oss;
         oss << "Reading image (width=" << width << " height=" << height << ")\n" <<
             "Number of transforms: " << numTransforms << "\n" <<
             "Compression Ratio: " << ratio << ":1\n" <<
@@ -92,7 +92,6 @@ public:
             }
         }
         if (usage) {
-            std::ostringstream oss;
             oss << "Usage: %s [-p #] filename for decoding\n"<<
                    "\t-p 5    Number of decoding phases\n"<<argv[0]<<'\n';
             std::string str = oss.str();
@@ -115,7 +114,6 @@ public:
         std::string decodedName = newFileName + extension;
         Image *producer = dec->GetNewImage(decodedName, 0);
         producer->Save();
-        std::ostringstream oss;
         oss <<"Reading image (width=" << width << " height=" << height << ")\n" <<
             "Decoding time: " << duration.count() << " ms" << '\n';
         std::string str = oss.str();
@@ -156,7 +154,6 @@ private:
     static std::pair<Transforms *, std::string> LoadTransformsFromJson(const std::string &filePath, int *width, int *height) {
         std::ifstream inFile(filePath);
         if (!inFile.is_open()) {
-            std::ostringstream oss;
             oss <<"Error: Unable to open file for reading: " << filePath  << '\n';
             std::string str = oss.str();
             Controller::sendMesssage(str);

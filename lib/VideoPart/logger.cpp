@@ -6,13 +6,14 @@
 #include <string>
 #include <chrono>
 #include <iomanip>
-
+#include "../../src/controller/Controller.h"
 class Logger {
 private:
     std::ostream* output;
     std::ofstream fileStream;
     std::ostream& consoleStream;
     std::chrono::steady_clock::time_point startTime;
+    std::ostringstream oss;
     bool toFile;
     bool needTime; 
 
@@ -33,7 +34,7 @@ public:
 
     void switchToFile() {
         if (toFile) {
-            std::cout << "Already logging to file" << std::endl;
+            consoleStream<<"Already logging to file\n";
             return;
         }
         fileStream.open("log.txt");
@@ -43,7 +44,7 @@ public:
 
     void switchToConsole() {
         if (!toFile) {
-            std::cout << "Already logging to console" << std::endl;
+            consoleStream<<"Already logging to console\n";
             return;
         }
         output = &consoleStream;
@@ -60,6 +61,8 @@ public:
     ~Logger() {
         if (toFile) {
             fileStream.close();
+        } else{
+            Controller::sendMesssage(oss.str());
         }
     }
 

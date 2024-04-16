@@ -9,7 +9,7 @@
 #include "../model/Parser.h"
 #include "../../lib/ImagePart/FractalAlgo.h"
 #include "../../lib/VideoPart/QuantizationAlgo.h"
-#include "../../lib/ImagePart/FlacAlgo.h"
+#include "../../lib/AudioPart/FlacAlgo.h"
 void Controller::run(int argc, char **argv) {
     std::vector<std::string> tokens;
     std::string token;
@@ -70,10 +70,10 @@ void Controller::run(int argc, char **argv) {
             case AlgorithmEnum::FLAC:
                 try{
                     if (arg.action_){//encode
-                        FlacAlgo.encode(arg.name_,arg.options_[0]);
+                        FlacAlgo::encode(arg.name_,arg.options_[0]);
                     }
                     else{//decode
-                        FlacAlgo.decode(arg.name_,arg.options_[0]);
+                        FlacAlgo::decode(arg.name_,arg.options_[0]);
                     }
                 }
                 catch(std::exception){

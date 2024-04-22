@@ -16,14 +16,42 @@
 #include "Decoder.h"
 #include <chrono>
 #include <utility>
+#include "../../src/controller/Controller.h"
 
 using json = nlohmann::json;
 
-class FractalAlgo {
-private:
-    static std::ostringstream oss;
+class FractalAlgo : public IController {
 public:
-    static void encode(const std::string& fileName,int quality) {
+    FractalAlgo(bool isTextOutput, const std::string &outputFile)
+            : IController(isTextOutput, outputFile) {
+        //this->view = view;
+    }
+    void sendCommonInformation(const CommonInformation &commonInformation) override {
+        sendMessage("FractalAlgo{ ");
+        IController::sendCommonInformation(commonInformation);
+        sendMessage("}\n");
+    }
+
+    void sendErrorInformation(const std::string &error) override {
+        IController::sendErrorInformation("FractalAlgo{ "+error+"}\n");
+    }
+    void sendEncodedInformation(int width, int height, int numTransforms) {
+        std::stringstream oss;
+        oss << "Reading image (width=" << width << " height=" << height << ")\n" <<
+            "Number of transforms: " << numTransforms << "\n";
+        std::string tmp = oss.str();
+        sendMessage(tmp);
+    };
+
+    void sendDecodedInformation(int width, int height, int phases) {
+        std::stringstream oss;
+        oss << "Created image (width=" << width << " height=" << height << ")\n" <<
+            "Number of phases: " << phases << "\n";
+        std::string tmp = oss.str();
+        sendMessage(tmp);
+    }
+
+    void encode(const std::string &fileName, int quality) {
         /*std::string fileName;
         int quality = 100;
         bool usage = true;
@@ -49,7 +77,7 @@ public:
         }*/
         auto *source = new Image();
         source->ImageSetup(fileName);
-        auto *enc = new QuadTreeEncoder(quality);
+        auto *enc = new QuadTreeEncoder(isTextOutput, outputFile, quality);
         source->Load();
 
         int width = source->width;
@@ -62,21 +90,21 @@ public:
         std::string encodedName = source->fileName + "_encoded.json";
         SaveTransformsToJson(transforms, encodedName, source->extension, width, height);
         size_t numTransforms = transforms->ch[0].size() +
-                            transforms->ch[1].size() + transforms->ch[2].size();
+                               transforms->ch[1].size() + transforms->ch[2].size();
         size_t transformSize = numTransforms * sizeof(IFSTransform);
         size_t ratio = width * height * 3 / (transformSize / sizeof(int));
-        oss << "Reading image (width=" << width << " height=" << height << ")\n" <<
-            "Number of transforms: " << numTransforms << "\n" <<
-            "Compression Ratio: " << ratio << ":1\n" <<
-            "Encoding time: " << duration.count() << " ms" << '\n';
-        std::string str = oss.str();
-        Controller::sendMesssage(str);
+        CommonInformation information = {static_cast<int>(ratio),
+                                         static_cast<int>(duration.count()),
+                                         width * height * 3,
+                                         sizeof(transforms)};
+        sendCommonInformation(information);
+        sendEncodedInformation(width, height, numTransforms);
         delete transforms;
         delete enc;
         delete source;
     };
 
-    static void decode(const std::string& fileName,int phases) {
+    void decode(const std::string &fileName, int phases) {
         /*std::string fileName;
         int phases = 5;
         bool usage = true;
@@ -114,16 +142,18 @@ public:
         std::string decodedName = newFileName + extension;
         Image *producer = dec->GetNewImage(decodedName, 0);
         producer->Save();
-        oss <<"Reading image (width=" << width << " height=" << height << ")\n" <<
-            "Decoding time: " << duration.count() << " ms" << '\n';
-        std::string str = oss.str();
-        Controller::sendMesssage(str);
+        int ratio = width * height * producer->channels / sizeof(transforms2);
+        CommonInformation information = {ratio, static_cast<int>(duration.count()), sizeof(transforms2),
+                                         width * height * producer->channels};
+        sendCommonInformation(information);
+        sendDecodedInformation(width, height, phases);
         delete producer;
         delete dec;
     };
 private:
-    static void SaveTransformsToJson(const Transforms *transforms, const std::string &filePath, const std::string &extension,
-                              int width, int height) {
+    static void
+    SaveTransformsToJson(const Transforms *transforms, const std::string &filePath, const std::string &extension,
+                         int width, int height) {
         json jsonTransforms;
         jsonTransforms["extension"] = extension;
         jsonTransforms["width"] = width;
@@ -151,12 +181,10 @@ private:
         outFile.close();
     }
 
-    static std::pair<Transforms *, std::string> LoadTransformsFromJson(const std::string &filePath, int *width, int *height) {
+    std::pair<Transforms *, std::string> LoadTransformsFromJson(const std::string &filePath, int *width, int *height) {
         std::ifstream inFile(filePath);
         if (!inFile.is_open()) {
-            oss <<"Error: Unable to open file for reading: " << filePath  << '\n';
-            std::string str = oss.str();
-            Controller::sendMesssage(str);
+            sendErrorInformation("Error: Unable to open file for reading: " + filePath + '\n');
             exit(-1);
         }
         json jsonTransforms;

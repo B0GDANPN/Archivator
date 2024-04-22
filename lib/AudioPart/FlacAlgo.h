@@ -16,6 +16,9 @@
 #include <algorithm>
 #include <chrono>
 #include "../../src/controller/Controller.h"
+#include "../../src/dto/BitSteam.h"
+#include "../../src/dto/WAWHeader.h"
+#include "../../src/dto/CommonInformation.h"
 #include <sstream>
 
 static constexpr int globalSizeBlocks = 16384 * 8; // Size of blocks (INT32_MAX for 1 block)
@@ -25,52 +28,6 @@ struct Information {
     double compression;
     std::chrono::milliseconds time;
     int globalSizeBlocks, globalOrder, k;
-
-    Information(double compression, std::chrono::milliseconds time, int globalSizeBlocks, int globalOrder, int k)
-            : compression(compression), time(time), globalSizeBlocks(globalSizeBlocks), globalOrder(globalOrder),
-              k(k) {};
-
-};
-
-struct BitStream {
-    std::vector<uint8_t> data;
-    int bitIndex;
-
-    BitStream() : bitIndex(0) {}
-
-    explicit BitStream(std::vector<uint8_t> data) : bitIndex(0), data(std::move(data)) {}
-
-    void addBit(bool bit) {
-        if (bitIndex % 8 == 0) {
-            data.push_back(0);
-        }
-        if (bit) {
-            data.back() |= (1 << (7 - bitIndex % 8));
-        }
-        bitIndex++;
-    }
-
-    bool getBit() {
-        bool bit = (data[bitIndex / 8] >> (7 - bitIndex % 8)) & 1;
-        bitIndex++;
-        return bit;
-    }
-};
-
-struct WAVHeader {
-    char chunkID[4];
-    uint32_t chunkSize;
-    char format[4];
-    char subchunk1ID[4];
-    uint32_t subchunk1Size;
-    uint16_t audioFormat;
-    uint16_t numChannels;
-    uint32_t sampleRate;
-    uint32_t byteRate;
-    uint16_t blockAlign;
-    uint16_t bitsPerSample;
-    char subchunk2ID[4];
-    uint32_t subchunk2Size;
 };
 
 // Linear predictive coding
@@ -84,7 +41,7 @@ public:
     explicit LPC(std::vector<double> coeffs) : coeffs(std::move(coeffs)) {}
 
     void train(const std::vector<int16_t> &input) {
-        int N = input.size();
+        int N = static_cast<int>(input.size());
         coeffs.resize(globalOrder + 1, 0);
 
         std::vector<double> r(globalOrder + 1, 0); // Autocorrelation sequence
@@ -146,17 +103,36 @@ public:
 
 };
 
-class FlacAlgo {
+class FlacAlgo : public IController {
     friend class LPC;
 
-    static std::ostringstream oss;
 public:
-    static void encode(const std::string &inputFilename, const std::string &outputFilename) {
+    FlacAlgo(bool isTextOutput, const std::string &outputFile)
+            : IController(isTextOutput, outputFile) {
+        //this->view = view;
+    }
+    void sendCommonInformation(const CommonInformation &commonInformation) override {
+        sendMessage("FlacAlgo{ ");
+        IController::sendCommonInformation(commonInformation);
+        sendMessage("}\n");
+    }
+
+    void sendErrorInformation(const std::string &error) override {
+        IController::sendErrorInformation("FlacAlgo{ "+error+"}\n");
+    }
+    void sendGlobalParams() {
+        std::ostringstream oss;
+        oss << "FlacAlgo: globalSizeBlocks: " << globalSizeBlocks << ", globalOrder: " << globalOrder << ", k: "
+            << globalK << '\n';
+        std::string str = oss.str();
+        sendMessage(str);
+    }
+
+    void encode(const std::string &inputFilename, const std::string &outputFilename) {
         auto start = std::chrono::high_resolution_clock::now();
         WAVHeader header{};
         if (!readWAVHeader(inputFilename, header)) {
-            oss << "Failed to read WAV file.\n";
-            Controller::sendMesssage(oss.str());
+            sendErrorInformation("Failed to read WAV file.\n");
             exit(-1);
         }
         BitStream stream;
@@ -187,23 +163,20 @@ public:
             outputFile.write(reinterpret_cast<const char *>(&size), sizeof(size_t));
             outputFile.write(reinterpret_cast<const char *>(stream.data.data()), size);
             outputFile.close();
-            std::cout << "FLAC data saved to: " << outputFilename << std::endl;
+            sendMessage("FLAC data saved to: " + outputFilename + '\n');
         } else {
-            oss << "Failed to write FLAC file.\n";
-            Controller::sendMesssage(oss.str());
+            sendErrorInformation("Failed to write FLAC file.\n");
             exit(-1);
         }
         std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
-        auto *info = new Information((double) header.subchunk2Size / (double) size,
-                                     std::chrono::duration_cast<std::chrono::milliseconds>(end - start),
-                                     globalSizeBlocks, globalOrder, globalK);
-        oss << "FLAC{compression: " << info->compression << ", time: " << info->time.count() << ", globalSizeBlocks: "
-            << info->globalSizeBlocks << ", globalOrder: " << info->globalOrder << ", k: " << info->k << "}";
-
-        Controller::sendMesssage(oss.str());
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+        auto info = CommonInformation(static_cast<int>(header.subchunk2Size / size),
+                                      duration.count(), size, header.subchunk2Size);
+        sendCommonInformation(info);
+        sendCodedInformation(globalSizeBlocks, globalOrder, globalK);
     }
 
-    static void decode(const std::string &inputFilename, const std::string &outputFilename) {
+    void decode(const std::string &inputFilename, const std::string &outputFilename) {
         auto start = std::chrono::high_resolution_clock::now();
         std::ofstream outputFile(outputFilename, std::ios::binary);
         std::ifstream inputFile(inputFilename, std::ios::binary);
@@ -219,8 +192,7 @@ public:
             if (outputFile.is_open()) {
                 outputFile.write(reinterpret_cast<const char *>(&header), sizeof(WAVHeader));
             } else {
-                oss << "Failed to write WAV file.\n";
-                Controller::sendMesssage(oss.str());
+                sendErrorInformation("Failed to write WAV file.\n");
                 exit(-1);
             }
 
@@ -254,27 +226,24 @@ public:
                 if (outputFile.is_open()) {
                     outputFile.write(reinterpret_cast<const char *>(pcmData.data()), pcmData.size() * sizeof(int16_t));
                 } else {
-                    oss << "Failed to write WAV file.\n";
-                    Controller::sendMesssage(oss.str());
+                    sendErrorInformation("Failed to write file\n");
                     exit(-1);
                 }
             }
-            std::cout << "WAV data saved to: " << outputFilename << std::endl;
+            sendMessage("WAV data saved to: " + outputFilename + '\n');
             outputFile.close();
         } else {
-            oss << "Failed to read FLAC file.\n";
-            Controller::sendMesssage(oss.str());
+            sendErrorInformation("Failed to read FLAC file.\n");
             exit(-1);
         }
         std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
-        auto *info = new Information((double) header.subchunk2Size / (double) size,
-                                     std::chrono::duration_cast<std::chrono::milliseconds>(end - start),
-                                     globalSizeBlocks, globalOrder, globalK);
-        oss << "FLAC{compression: " << info->compression << ", time: " << info->time.count() << ", globalSizeBlocks: "
-            << info->globalSizeBlocks << ", globalOrder: " << info->globalOrder << ", k: " << info->k << "}";
-        delete info;
-        Controller::sendMesssage(oss.str());
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+        auto info = CommonInformation(static_cast<int>(header.subchunk2Size / size),
+                                      duration.count(), size, header.subchunk2Size);
+        sendCommonInformation(info);
+        sendGlobalParams();
     }
+
 
 private:
 
@@ -330,10 +299,10 @@ private:
         return decoded;
     }
 
-    static bool readWAVHeader(const std::string &filename, WAVHeader &header) {
+    bool readWAVHeader(const std::string &filename, WAVHeader &header) {
         std::ifstream file(filename, std::ios::binary);
         if (!file.is_open()) {
-            std::cerr << "Failed to open file: " << filename << std::endl;
+            sendErrorInformation("Failed to open file: " + filename + '\n');
             return false;
         }
 
@@ -341,7 +310,7 @@ private:
 
         if (std::string(header.chunkID, 4) != "RIFF" || std::string(header.format, 4) != "WAVE" ||
             header.audioFormat != 1 || header.numChannels != 1) {
-            std::cerr << "Invalid WAV file format." << std::endl;
+            sendErrorInformation("Invalid WAV file format.\n");
             file.close();
             return false;
         }
@@ -355,10 +324,10 @@ private:
         return true;
     }
 
-    static std::vector<int16_t> readWAVData(const std::string &filename, const WAVHeader &header, int startIndex) {
+    std::vector<int16_t> readWAVData(const std::string &filename, const WAVHeader &header, int startIndex) {
         std::ifstream file(filename, std::ios::binary);
         if (!file.is_open()) {
-            std::cerr << "Failed to open file: " << filename << std::endl;
+            sendErrorInformation("Failed to open file: " + filename + '\n');
             return {};
         }
 
@@ -367,7 +336,7 @@ private:
 
 
         if (header.subchunk2Size % sizeof(int16_t) != 0) {
-            std::cerr << "Invalid data size in WAV file." << std::endl;
+            sendErrorInformation("Invalid data size in WAV file.\n");
             return {};
         }
 

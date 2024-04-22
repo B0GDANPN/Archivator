@@ -4,6 +4,7 @@
 
 #ifndef ARCHIVATOR_ALGORITHMENUM_H
 #define ARCHIVATOR_ALGORITHMENUM_H
+#pragma once
 enum class AlgorithmEnum {
     QUANTIZATION,
     FRACTAL,

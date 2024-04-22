@@ -3,25 +3,6 @@
 #include "Image.h"
 #include "IFSTransform.h"
 #include "Decoder.h"
-Decoder::Decoder(int width, int height, int channels) {
-    img.channels =channels;
-    img.width = width;
-    img.height = height;
-    img.originalSize = width * height * channels;
-    img.imagedata = new PixelValue[width * height];
-    img.imagedata2 = new PixelValue[width * height];
-    img.imagedata3 = new PixelValue[width * height];
-
-    // Initialize to grey image
-    for (int i = 0; i < img.width * img.height; i++) {
-        img.imagedata[i] = 127;
-        img.imagedata2[i] = 127;
-        img.imagedata3[i] = 127;
-    }
-}
-
-Decoder::~Decoder()
-= default;
 
 void Decoder::Decode(Transforms *transforms) {
     Transform::iterator iter;

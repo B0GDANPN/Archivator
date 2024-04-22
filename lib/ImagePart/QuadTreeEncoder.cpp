@@ -6,7 +6,7 @@
 
 #define BUFFER_SIZE        (32)
 
-QuadTreeEncoder::QuadTreeEncoder(int quality) {
+QuadTreeEncoder::QuadTreeEncoder(bool isTextOutput, const std::string& outputFile,int quality) : Encoder(isTextOutput, outputFile) {
     this->quality = quality;
 }
 

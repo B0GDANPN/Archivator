@@ -1,0 +1,8 @@
+[
+{
+  "directory": "D:/Projects/Cpp/view/build",
+  "command": "C:\\msys64\\mingw64\\bin\\g++.exe  @CMakeFiles/SFMLProject.dir/includes_CXX.rsp -g -o CMakeFiles\\SFMLProject.dir\\main.cpp.obj -c D:\\Projects\\Cpp\\view\\main.cpp",
+  "file": "D:/Projects/Cpp/view/main.cpp",
+  "output": "CMakeFiles/SFMLProject.dir/main.cpp.obj"
+}
+]

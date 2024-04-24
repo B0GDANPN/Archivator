@@ -5,7 +5,7 @@
 class QuadTreeEncoder : public Encoder {
 public:
 
-    explicit QuadTreeEncoder(int quality = 100);
+    explicit QuadTreeEncoder(bool isTextOutput, const std::string& outputFile,int quality = 100);
 
     ~QuadTreeEncoder() override;
 

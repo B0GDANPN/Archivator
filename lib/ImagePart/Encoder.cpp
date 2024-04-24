@@ -24,7 +24,7 @@ double Encoder::GetScaleFactor(
                 oss << "Error: Overflow occurred during scaling"
                     << y << " " << domainWidth << " " << bottom << " " << top << '\n';
                 std::string str = oss.str();
-                Controller::sendMesssage(str);
+                sendErrorInformation(str);
                 delete rangeData;
                 delete domainData;
                 exit(-1);
@@ -60,7 +60,7 @@ double Encoder::GetError(
                 std::ostringstream oss;
                 oss << "Error: Overflow occurred during error " << top << '\n';
                 std::string str = oss.str();
-                Controller::sendMesssage(str);
+                sendErrorInformation(str);
                 delete rangeData;
                 delete domainData;
                 exit(-1);
@@ -84,7 +84,7 @@ int Encoder::GetAveragePixel(const PixelValue *domainData, int domainWidth,
                 std::ostringstream oss;
                 oss << "Error: Accumulator rolled over averaging pixels." << '\n';
                 std::string str = oss.str();
-                Controller::sendMesssage(str);
+                sendErrorInformation(str);
                 delete domainData;
                 exit(-1);
             }

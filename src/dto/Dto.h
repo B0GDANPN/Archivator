@@ -10,13 +10,14 @@
 #include "AlgorithmEnum.h"
 #include <vector>
 #include <sstream>
-
+#include <utility>
 struct Dto {
     std::string name_;
     bool action_;
     std::vector<std::string> options_;
 
-    explicit Dto(std::string name, bool action, std::vector<std::string> options);
+    explicit Dto(std::string name, bool action, std::vector<std::string> options): name_(std::move(name)), action_(action),
+                                                                                   options_(std::move(options)) {}
 };
 
 std::string toStr(const Dto &dto) {

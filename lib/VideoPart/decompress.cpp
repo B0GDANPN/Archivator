@@ -1,6 +1,7 @@
 #include "decompress.h"
 #include <fstream>
 #include "codec.h"
+
 #include "logger.h"
 
 void fill(const cv::Vec3b& value, const cv::Size& size, std::vector<uchar>& data) {

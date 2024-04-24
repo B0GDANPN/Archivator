@@ -5,4 +5,4 @@
 
 inline Logger logger{};
 
-#endif
+#endif LOGGER_H

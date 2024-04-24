@@ -7,6 +7,8 @@
 
 std::vector<cv::Vec3b> decodeBufferFromFile(const std::string& filename);
 
+std::vector<uchar> decompressMat(const std::vector<uchar>& compressedData);
+
 MatrixInfo readNextMatrixAndPoint(const std::string& filename);
 
 void decode(const std::string& framedata, const std::string& matdata, const std::string& subframedata, const std::string& output);

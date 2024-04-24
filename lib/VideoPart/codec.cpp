@@ -5,17 +5,18 @@
 #include "compress.h"
 #include "decompress.h"
 #include "logger.h"
+#include "test.h"
 
-int main(int argc, char* argv[]) {
-
+//int main(int argc, char* argv[]) {
+int main() {
     std::string framedata = "sampleZip/framedata.csv";
     std::string matdata = "sampleZip/matdata.bin";
     std::string subframedata = "sampleZip/subframe/";
     
-    std::string command = argv[1];
+    std::string command = "test";
 
-    //logger.switchToConsole();
-    logger.switchToFile();
+    logger.switchToConsole();
+    //logger.switchToFile();
 
     if (command == "encode") {
         logger << "Encoding..." << std::endl;
@@ -78,7 +79,7 @@ int main(int argc, char* argv[]) {
             cap.read(frame);
             std::string filename = "sampleZip/subframe/";
             logger << "Size of buffer: " << subFrameBuffer.size() * sizeof(cv::Vec3b) / 1024 << std::endl;
-            writeBufferToFile(subFrameBuffer, filename);
+            writeBufferToFile(subFrameBuffer, filename, SUBFRAME_DIFFERENCE);
         }
         logger << "Time for encoding: " << logger.elapsedTime() << " ms" << std::endl;
         logger << "Params: " << SPLIT_DEPTH << " " 
@@ -93,6 +94,9 @@ int main(int argc, char* argv[]) {
             << NOIZES << " "
             << NOIZES_PER_SUBFRAME << std::endl;
         return 0;
+    }
+    else if (command == "test") {
+        diagnostic();
     }
     else {
         logger << "Unknown command" << std::endl;

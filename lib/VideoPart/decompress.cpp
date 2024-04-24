@@ -3,6 +3,17 @@
 #include "codec.h"
 #include "logger.h"
 
+void fill(const cv::Vec3b& value, const cv::Size& size, std::vector<uchar>& data) {
+    size_t numElements = size.width * size.height;  // 3 color channels
+
+    for (size_t i = 0; i < numElements; i++) {
+        data.push_back(value[0]);
+        data.push_back(value[1]);
+        data.push_back(value[2]);
+    }
+    
+}
+
 std::vector<uchar> decompressMat(const std::vector<uchar>& compressedData) {
     std::vector<uchar> decompressedData;
     for (size_t i = 0; i < compressedData.size(); i += 4) {
@@ -27,20 +38,45 @@ MatrixInfo readNextMatrixAndPoint(const std::string& filename) {
         exit(0);
     }
 
-    cv::Size size;
-    ifs.read(reinterpret_cast<char*>(&size), sizeof(cv::Size));
     if (ifs.eof()) {
         return MatrixInfo();
     }
 
+    cv::Vec3b scalar;
+    bool isSolid;
+    cv::Size size;
     cv::Point point;
+    size_t dataSize; 
+
+    ifs.read(reinterpret_cast<char*>(&scalar), sizeof(cv::Vec3b));
+    ifs.read(reinterpret_cast<char*>(&isSolid), sizeof(bool));
+    ifs.read(reinterpret_cast<char*>(&size), sizeof(cv::Size));
     ifs.read(reinterpret_cast<char*>(&point), sizeof(cv::Point));
 
-    size_t dataSize;
-    ifs.read(reinterpret_cast<char*>(&dataSize), sizeof(dataSize));
-    std::vector<uchar> compressedData(dataSize);
-    ifs.read(reinterpret_cast<char*>(compressedData.data()), dataSize);
 
+    // logger << "DATASIZE: " << dataSize << std::endl;
+    // logger << "SIZE: " << size << std::endl;
+    // logger << "POINT: " << point << std::endl;
+
+ 
+    std::vector<uchar> decompressedData;
+    
+    if (!isSolid) {
+        ifs.read(reinterpret_cast<char*>(&dataSize), sizeof(dataSize));
+        std::vector<uchar> compressedData(dataSize);
+        ifs.read(reinterpret_cast<char*>(compressedData.data()), dataSize);
+        decompressedData = decompressMat(compressedData);
+    }
+    else {
+        fill(scalar, size, decompressedData);
+    }
+
+    MatrixInfo matrixInfo;
+    matrixInfo.data = std::move(decompressedData);
+    matrixInfo.size = size;
+    matrixInfo.point = point;
+    matrixInfo.dataSize = size.height * size.width * COLOR_CHANNELS;
+    
     std::string tempFilename = filename + ".tmp";
     std::ofstream ofs(tempFilename, std::ios::binary);
 
@@ -50,13 +86,7 @@ MatrixInfo readNextMatrixAndPoint(const std::string& filename) {
 
     remove(filename.c_str());
     rename(tempFilename.c_str(), filename.c_str());
-    std::vector<uchar> decompressedData = decompressMat(compressedData);
-    cv::Mat e(size, CV_8UC3, decompressedData.data());
-    MatrixInfo matrixInfo;
-    matrixInfo.data = std::move(decompressedData);
-    matrixInfo.size = size;
-    matrixInfo.point = point;
-    matrixInfo.dataSize = dataSize;
+    
     return matrixInfo;
 }
 

@@ -2,6 +2,40 @@
 #include "compress.h"
 #include <fstream>
 #include "logger.h"
+#include <opencv2/core.hpp>
+
+cv::Vec3b scalarToVec3b(const cv::Scalar& scalar) {
+    return cv::Vec3b(static_cast<uchar>(scalar[0] + 0.5),
+        static_cast<uchar>(scalar[1] + 0.5),
+        static_cast<uchar>(scalar[2] + 0.5));
+}
+
+bool isSimilar(const cv::Vec3b& pixel1, const cv::Vec3b& pixel2, int threshold = CACHED_FRAME_DIFFERENCE) {
+    int distance = 0;
+    for (int i = 0; i < 3; ++i) {
+        distance += static_cast<int>(pixel1[i]) - static_cast<int>(pixel2[i]);
+    }
+    return distance <= threshold;
+}
+
+std::pair<cv::Vec3b, bool> areSolid(const cv::Mat& matrix, double threshold = SOLID_DIFFERENCE) {
+    cv::Scalar meanValue = cv::mean(matrix);
+
+    for (int i = 0; i < matrix.rows; ++i) {
+        for (int j = 0; j < matrix.cols; ++j) {
+            cv::Vec3b pixel = matrix.at<cv::Vec3b>(i, j);
+            double diffB = std::abs(pixel[0] - meanValue.val[0]);
+            double diffG = std::abs(pixel[1] - meanValue.val[1]);
+            double diffR = std::abs(pixel[2] - meanValue.val[2]);
+
+            if (diffB > threshold || diffG > threshold || diffR > threshold) {
+                return std::make_pair(scalarToVec3b(meanValue), false);
+            }
+        }
+    }
+    return std::make_pair(scalarToVec3b(meanValue), true);
+}
+
 
 std::vector<uchar> compressMat(const cv::Mat& image) {
     if (image.empty()) {
@@ -13,7 +47,7 @@ std::vector<uchar> compressMat(const cv::Mat& image) {
     for (int row = 0; row < image.rows; ++row) {
         int count = 1;
         for (int col = 1; col < image.cols; ++col) {
-            if (image.at<cv::Vec3b>(row, col) == image.at<cv::Vec3b>(row, col - 1)) {
+            if (isSimilar(image.at<cv::Vec3b>(row, col), image.at<cv::Vec3b>(row, col - 1)) && count < 255) {
                 count++;
             }
             else {
@@ -42,16 +76,22 @@ void writeMatricesAndPoints(const std::vector<std::pair<cv::Point, cv::Mat>>& ma
     }
 
     for (const auto& matrix_info : matrices) {
-        cv::Size size = matrix_info.second.size();
-        ofs.write(reinterpret_cast<const char*>(&size), sizeof(cv::Size));
 
+        std::pair<cv::Vec3b, bool> isSolid = areSolid(matrix_info.second);
+        cv::Size size = matrix_info.second.size();
         cv::Point point = matrix_info.first;
+
+        ofs.write(reinterpret_cast<const char*>(&isSolid.first), sizeof(cv::Vec3b));
+        ofs.write(reinterpret_cast<const char*>(&isSolid.second), sizeof(bool));
+        ofs.write(reinterpret_cast<const char*>(&size), sizeof(cv::Size));
         ofs.write(reinterpret_cast<const char*>(&point), sizeof(cv::Point));
 
-        std::vector<uchar> vec = compressMat(matrix_info.second);
-        size_t dataSize = vec.size();
-        ofs.write(reinterpret_cast<const char*>(&dataSize), sizeof(dataSize));
-        ofs.write(reinterpret_cast<const char*>(vec.data()), dataSize);
+        if (!isSolid.second) {
+            std::vector<uchar> vec = compressMat(matrix_info.second);
+            size_t dataSize = vec.size();
+            ofs.write(reinterpret_cast<const char*>(&dataSize), sizeof(dataSize));
+            ofs.write(reinterpret_cast<const char*>(vec.data()), dataSize);
+        }
     }
 
     ofs.close();
@@ -115,7 +155,7 @@ void writeNumbersExcludingSubmatrices(const cv::Mat& big_matrix, const std::vect
     }
 }
 
-void writeBufferToFile(const std::vector<cv::Vec3b>& buffer, const std::string& filename) {
+void writeBufferToFile(const std::vector<cv::Vec3b>& buffer, const std::string& filename, int threshold = 10) {
     static int fileCounter = 0;
 
     std::stringstream ss;
@@ -132,7 +172,7 @@ void writeBufferToFile(const std::vector<cv::Vec3b>& buffer, const std::string& 
         int count = 1;
         cv::Vec3b prev_pixel = buffer[i];
         for (size_t j = i + 1; j < buffer.size(); ++j) {
-            if (buffer[j] == prev_pixel && count < 255) {
+            if (isSimilar(prev_pixel, buffer[j], threshold) && count < 255) {
                 count++;
             }
             else {
@@ -148,10 +188,7 @@ void writeBufferToFile(const std::vector<cv::Vec3b>& buffer, const std::string& 
             outputFile.write(reinterpret_cast<const char*>(&prev_pixel), sizeof(cv::Vec3b));
         }
     }
-
-    outputFile.close();
 }
-
 
 void insertMatrix(cv::Mat& bigMatrix, const cv::Mat& smallMatrix, cv::Point position) {
     if (position.x < 0 || position.y < 0 ||

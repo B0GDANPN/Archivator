@@ -14,6 +14,6 @@ void insertMatrix(cv::Mat& bigMatrix, const cv::Mat& smallMatrix, cv::Point posi
 
 std::vector<uchar> compressMat(const cv::Mat& image);
 
-void writeBufferToFile(const std::vector<cv::Vec3b>& buffer, const std::string& filename);
+void writeBufferToFile(const std::vector<cv::Vec3b>& buffer, const std::string& filename, int theshold);
 
 #endif COMPRESS_H

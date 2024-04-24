@@ -15,6 +15,11 @@ struct MatrixInfo {
 const size_t SPLIT_DEPTH = 16;
 const size_t NOIZES = 3000000;
 const size_t NOIZES_PER_SUBFRAME = 500000;
+const size_t SOLID_DIFFERENCE = 100;
+const size_t SUBFRAME_DIFFERENCE = 15;
+const size_t CACHED_FRAME_DIFFERENCE = 10;
+const size_t COLOR_CHANNELS = 3;
+
 
 struct _Rect {
     size_t a;

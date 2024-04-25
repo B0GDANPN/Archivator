@@ -7,7 +7,6 @@
 #include <string>
 #include <filesystem>
 #include <fstream>
-//#include "../controller/Controller.h"
 // порядок аргументов enc/dec -o opt1 .. optN -f file1 .. fileM
 // или текстовый файл с такими строками
 class Parser{

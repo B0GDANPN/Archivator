@@ -5,8 +5,8 @@
 #include <vector>
 #include "Image.h"
 #include "IFSTransform.h"
-#include "forTesting/controller/IController.h"
-//#include "../../src/controller/Controller.h"
+//#include "forTesting/controller/IController.h"
+#include "../../src/controller/Controller.h"
 
 class Encoder : public IController {
 public:

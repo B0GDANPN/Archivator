@@ -173,7 +173,7 @@ public:
         auto info = CommonInformation(static_cast<int>(header.subchunk2Size / size),
                                       duration.count(), size, header.subchunk2Size);
         sendCommonInformation(info);
-        sendCodedInformation(globalSizeBlocks, globalOrder, globalK);
+        sendGlobalParams();
     }
 
     void decode(const std::string &inputFilename, const std::string &outputFilename) {

@@ -70,7 +70,7 @@ public:
         int sizeInputData = frameCount * frameWidth * frameHeight * channelCount * pixelSize;
         if (!cap.isOpened()) {
             sendErrorInformation("Failed to open the video file.");
-            return -1;
+            return;
         }
 
         cv::Mat frame, frame2, dst;
@@ -82,7 +82,8 @@ public:
 
         size_t sum;
         bool end_flag = false;
-        sendMessage("Size frame: " + std::to_string(frame.size) + "\n");
+        std::string msg = "Size frame: " + std::to_string(sizeInputData) + "\n"; 
+        sendMessage(msg);
         ofs << frame.rows << "," << frame.cols << std::endl;
 
         while (!frame.empty()) {

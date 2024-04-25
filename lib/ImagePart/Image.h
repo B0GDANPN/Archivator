@@ -13,8 +13,8 @@
 #include <string>
 #include <cstring>
 #include <cmath>
-#include "forTesting/controller/IController.h"
-//#include "../../src/controller/Controller.h"
+//#include "forTesting/controller/IController.h"
+#include "../../src/controller/Controller.h"
 
 typedef unsigned char PixelValue;
 

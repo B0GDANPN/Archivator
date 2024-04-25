@@ -111,6 +111,7 @@ public:
             : IController(isTextOutput, outputFile) {
         //this->view = view;
     }
+
     void sendCommonInformation(const CommonInformation &commonInformation) override {
         sendMessage("FlacAlgo{ ");
         IController::sendCommonInformation(commonInformation);
@@ -118,8 +119,9 @@ public:
     }
 
     void sendErrorInformation(const std::string &error) override {
-        IController::sendErrorInformation("FlacAlgo{ "+error+"}\n");
+        IController::sendErrorInformation("FlacAlgo{ " + error + "}\n");
     }
+
     void sendGlobalParams() {
         std::ostringstream oss;
         oss << "FlacAlgo: globalSizeBlocks: " << globalSizeBlocks << ", globalOrder: " << globalOrder << ", k: "
@@ -173,7 +175,7 @@ public:
         auto info = CommonInformation(static_cast<int>(header.subchunk2Size / size),
                                       duration.count(), size, header.subchunk2Size);
         sendCommonInformation(info);
-        sendCodedInformation(globalSizeBlocks, globalOrder, globalK);
+        sendGlobalParams();
     }
 
     void decode(const std::string &inputFilename, const std::string &outputFilename) {

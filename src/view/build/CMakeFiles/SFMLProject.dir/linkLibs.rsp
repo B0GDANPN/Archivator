@@ -1,0 +1,1 @@
+ "D:/Projects/Cpp/view/SFML-2.6.1/lib/libsfml-graphics-d.a" "D:/Projects/Cpp/view/SFML-2.6.1/lib/libsfml-window-d.a" "D:/Projects/Cpp/view/SFML-2.6.1/lib/libsfml-system-d.a" -lole32 -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32 

@@ -3,13 +3,18 @@
 
 #pragma once
 #include <string>
+#include <utility>
 #include <vector>
 #include "Image.h"
 #include "IFSTransform.h"
 class Decoder{
 public:
 
-    Decoder(int width, int height, int channels) {
+    Decoder(int width, int height, int channels,bool isTextOutput,const std::string& outputFile) {
+        this->isTextOutput=isTextOutput;
+        this->outputFile=outputFile;
+        img.isTextOutput=isTextOutput;
+        img.outputFile=outputFile;
         img.channels =channels;
         img.width = width;
         img.height = height;
@@ -45,7 +50,7 @@ public:
         }
     }
     Image *GetNewImage(const std::string &fileName, int channel) const {
-        auto *temp = new Image();
+        auto *temp = new Image(isTextOutput,outputFile);
         temp->ImageSetup(fileName);
         temp->channels = img.channels;
         temp->width = img.width;
@@ -61,9 +66,11 @@ public:
             temp->SetChannelData((!channel ? 3 : 1), img.imagedata3, sizeChannel);
         return temp;
     }
-
+public:
+    bool isTextOutput;
+    std::string outputFile;
 private:
-    Image img;
+    Image img=*new Image(isTextOutput,outputFile);
 };
 
 #endif // DEC_H

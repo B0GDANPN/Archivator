@@ -16,13 +16,14 @@
 #include "Decoder.h"
 #include <chrono>
 #include <utility>
-#include "../../src/controller/Controller.h"
-
+#include <filesystem>
+#include "forTesting/controller/IController.h"
+//#include "../../src/controller/Controller.h"
 using json = nlohmann::json;
 
 class FractalAlgo : public IController {
 public:
-    FractalAlgo(bool isTextOutput, const std::string &outputFile)
+    explicit FractalAlgo(bool isTextOutput, const std::string &outputFile)
             : IController(isTextOutput, outputFile) {
         //this->view = view;
     }
@@ -51,31 +52,8 @@ public:
         sendMessage(tmp);
     }
 
-    void encode(const std::string &fileName, int quality) {
-        /*std::string fileName;
-        int quality = 100;
-        bool usage = true;
-        for (int i = 1; i < argc && usage; i++) {
-            std::string param(argv[i]);
-
-            if (param == "-t" && i + 1 < argc)
-                quality = std::stoi(argv[i + 1]);
-            if (param.at(0) == '-') {
-                i++;
-            } else {
-                fileName = param;
-                usage = false;
-            }
-        }
-
-        if (usage) {
-            oss << "Usage: %s [-t #] filename for encoding\n"
-                   "\t-t 100  quality (i.e. quality) for encoding\n"<<argv[0]<<'\n';
-            std::string str = oss.str();
-            Controller::sendMesssage(str);
-            exit(-1);
-        }*/
-        auto *source = new Image();
+    void encode(const std::string &fileName,const std::string &outputFileName, int quality) {
+        auto *source = new Image(isTextOutput,outputFile);
         source->ImageSetup(fileName);
         auto *enc = new QuadTreeEncoder(isTextOutput, outputFile, quality);
         source->Load();
@@ -87,16 +65,13 @@ public:
         auto finish = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(finish - start);
 
-        std::string encodedName = source->fileName + "_encoded.json";
-        SaveTransformsToJson(transforms, encodedName, source->extension, width, height);
+        SaveTransformsToJson(transforms, outputFileName, source->extension, width, height);
         size_t numTransforms = transforms->ch[0].size() +
                                transforms->ch[1].size() + transforms->ch[2].size();
-        size_t transformSize = numTransforms * sizeof(IFSTransform);
-        size_t ratio = width * height * 3 / (transformSize / sizeof(int));
+        int ratio = width * height * 3 / transforms->getSize();
         CommonInformation information = {static_cast<int>(ratio),
                                          static_cast<int>(duration.count()),
-                                         width * height * 3,
-                                         sizeof(transforms)};
+                                         width * height * 3, transforms->getSize()};
         sendCommonInformation(information);
         sendEncodedInformation(width, height, numTransforms);
         delete transforms;
@@ -104,46 +79,24 @@ public:
         delete source;
     };
 
-    void decode(const std::string &fileName, int phases) {
-        /*std::string fileName;
-        int phases = 5;
-        bool usage = true;
-        for (int i = 1; i < argc && usage; i++) {
-            std::string param(argv[i]);
-            if (param == "-p" && i + 1 < argc)
-                phases = std::stoi(argv[i + 1]);
-            if (param.at(0) == '-') {
-                i++;
-            } else {
-                fileName = param;
-                usage = false;
-            }
-        }
-        if (usage) {
-            oss << "Usage: %s [-p #] filename for decoding\n"<<
-                   "\t-p 5    Number of decoding phases\n"<<argv[0]<<'\n';
-            std::string str = oss.str();
-            Controller::sendMesssage(str);
-            exit(-1);
-        }*/
+    void decode(const std::string &fileName,const std::string &outputFileName, int phases) {
         int width, height;
         std::string extension;
         Transforms *transforms2;
         std::tie(transforms2, extension) = LoadTransformsFromJson(fileName, &width, &height);
         auto start = std::chrono::high_resolution_clock::now();
-        auto *dec = new Decoder(width, height, transforms2->channels);
+        auto *dec = new Decoder(width, height, transforms2->channels,isTextOutput,outputFile);
         auto finish = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(finish - start);
 
         for (int phase = 1; phase <= phases; phase++) {
             dec->Decode(transforms2);
         }
-        std::string newFileName = fileName.substr(0, fileName.rfind('.'));
-        std::string decodedName = newFileName + extension;
-        Image *producer = dec->GetNewImage(decodedName, 0);
+        //std::string newFileName = fileName.substr(0, fileName.rfind('.'));
+        Image *producer = dec->GetNewImage(outputFileName, 0);
         producer->Save();
-        int ratio = width * height * producer->channels / sizeof(transforms2);
-        CommonInformation information = {ratio, static_cast<int>(duration.count()), sizeof(transforms2),
+        int ratio = width * height * producer->channels / transforms2->getSize();
+        CommonInformation information = {ratio, static_cast<int>(duration.count()), transforms2->getSize(),
                                          width * height * producer->channels};
         sendCommonInformation(information);
         sendDecodedInformation(width, height, phases);

@@ -1,16 +1,20 @@
+#ifndef STB_IMAGE_IMPLEMENTATION
+#define STB_IMAGE_IMPLEMENTATION
+#ifndef STB_IMAGE_WRITE_IMPLEMENTATION
+#define STB_IMAGE_WRITE_IMPLEMENTATION
 #ifndef IMAGE_H
 #define IMAGE_H
 #pragma once
 
 #include <sstream>
 #include "stb_image.h"
+#include "stb_image_write.h"
 #include <cstdlib>
 #include <string>
 #include <cstring>
 #include <cmath>
-
-#include "../../src/controller/Controller.h"
-#include "stb_image_write.h"
+#include "forTesting/controller/IController.h"
+//#include "../../src/controller/Controller.h"
 
 typedef unsigned char PixelValue;
 
@@ -27,13 +31,22 @@ public:
     std::string extension;
     int originalSize = 0;
 public:
-    Image() : IController(isTextOutput, outputFile) {};
+    Image(bool isTextOutput, const std::string &outputFile) : IController(isTextOutput, outputFile) {};
 
     void SendInfoModifiedImage(int newWidth, int newHeight) {
         std::ostringstream oss;
         oss << "Modifying image to (width=" << newWidth << " height=" << newHeight << ")" << '\n';
         std::string str = oss.str();
         sendMessage(str);
+    }
+    void sendCommonInformation(const CommonInformation &commonInformation) override {
+        sendMessage("FlactalAlgo{ ");
+        IController::sendCommonInformation(commonInformation);
+        sendMessage("}\n");
+    }
+
+    void sendErrorInformation(const std::string &error) override {
+        IController::sendErrorInformation("FractalAlgo{ "+error+"}\n");
     }
 
     ~Image() {
@@ -205,3 +218,5 @@ public:
 };
 
 #endif // IMAGE_H
+#endif
+#endif

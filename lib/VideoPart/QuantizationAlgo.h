@@ -166,7 +166,7 @@ public:
         if (std::getline(frame, line)) {
             std::istringstream ss(line);
             if (ss >> rows >> delimiter >> cols && delimiter == ',') {
-                sendMessage("Decoding: reading succes\n")
+                sendMessage("Decoding: reading succes\n");
             } else {
                 sendErrorInformation("Decoding: Not enough data\n");
                 exit(1);

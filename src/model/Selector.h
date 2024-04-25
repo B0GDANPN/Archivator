@@ -4,14 +4,29 @@
 
 #include <string>
 #include <vector>
+#include <filesystem>
 #include "../dto/Dto.h"
 
 class Selector {
 public:
-    static AlgorithmEnum getAlgorithmFromDto(const Dto &dto);
+    static AlgorithmEnum getAlgorithmFromDto(const Dto &dto){
+        std::string name = dto.files_[0];
+        AlgorithmEnum algorithm = getAlgorithmFromName(name);
+        return algorithm;
+    };
 
 private:
-    static AlgorithmEnum getAlgorithmFromName(const std::string &name);
+    static AlgorithmEnum getAlgorithmFromName(const std::string &name){
+        std::string extension = std::filesystem::path(name).extension();
+        if (extension == ".mp4") {
+            return AlgorithmEnum::QUANTIZATION;
+        } else if (extension == ".png" || extension == ".jpg" || extension == ".jpeg" || extension == ".bmp") {
+            return AlgorithmEnum::FRACTAL;
+        } else if (extension == ".mp3"|| extension==".wav") {
+            return AlgorithmEnum::FLAC;
+        }
+        return AlgorithmEnum::ERROR;//mp4
+    };
 };
 
 

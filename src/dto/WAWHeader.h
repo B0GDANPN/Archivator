@@ -23,4 +23,4 @@ struct WAVHeader {
     char subchunk2ID[4];
     uint32_t subchunk2Size;
 };
-#endif //ARCHIVATOR_WAWHEADER_H
+#endif ARCHIVATOR_WAWHEADER_H

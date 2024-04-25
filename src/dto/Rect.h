@@ -20,4 +20,4 @@ struct Rect {
         d = rect.y + rect.height;
     }
 };
-#endif //ARCHIVATOR_RECT_H
+#endif ARCHIVATOR_RECT_H

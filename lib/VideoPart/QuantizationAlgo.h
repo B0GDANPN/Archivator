@@ -44,7 +44,7 @@ public:
     }
 
     void sendErrorInformation(const std::string &error) override {
-        IController::sendErrorInformation("QuantizationAlgo{ "+error+"}\n");
+        IController::sendErrorInformation("QuantizationAlgo{ " + error + "}\n");
     }
 
     void sendGlobalParams() {
@@ -497,4 +497,4 @@ private:
 
 };
 
-#endif //ARCHIVATOR_QUANTIZATIONALGO_H
+#endif ARCHIVATOR_QUANTIZATIONALGO_H

@@ -13,7 +13,6 @@
 #include <string>
 #include <cstring>
 #include <cmath>
-//#include "forTesting/controller/IController.h"
 #include "../../src/controller/Controller.h"
 
 typedef unsigned char PixelValue;
@@ -39,6 +38,7 @@ public:
         std::string str = oss.str();
         sendMessage(str);
     }
+
     void sendCommonInformation(const CommonInformation &commonInformation) override {
         sendMessage("FlactalAlgo{ ");
         IController::sendCommonInformation(commonInformation);
@@ -46,7 +46,7 @@ public:
     }
 
     void sendErrorInformation(const std::string &error) override {
-        IController::sendErrorInformation("FractalAlgo{ "+error+"}\n");
+        IController::sendErrorInformation("FractalAlgo{ " + error + "}\n");
     }
 
     ~Image() {
@@ -217,6 +217,6 @@ public:
     }
 };
 
-#endif // IMAGE_H
-#endif
-#endif
+#endif IMAGE_H
+#endif STB_IMAGE_IMPLEMENTATION
+#endif STB_IMAGE_WRITE_IMPLEMENTATION

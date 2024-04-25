@@ -17,7 +17,7 @@
 #include <chrono>
 #include <utility>
 #include <filesystem>
-//#include "forTesting/controller/IController.h"
+#include "../src/controller/IController.h"
 //#include "../../src/controller/Controller.h"
 using json = nlohmann::json;
 
@@ -27,6 +27,7 @@ public:
             : IController(isTextOutput, outputFile) {
         //this->view = view;
     }
+
     void sendCommonInformation(const CommonInformation &commonInformation) override {
         sendMessage("FractalAlgo{ ");
         IController::sendCommonInformation(commonInformation);
@@ -34,8 +35,9 @@ public:
     }
 
     void sendErrorInformation(const std::string &error) override {
-        IController::sendErrorInformation("FractalAlgo{ "+error+"}\n");
+        IController::sendErrorInformation("FractalAlgo{ " + error + "}\n");
     }
+
     void sendEncodedInformation(int width, int height, int numTransforms) {
         std::stringstream oss;
         oss << "Reading image (width=" << width << " height=" << height << ")\n" <<
@@ -52,8 +54,8 @@ public:
         sendMessage(tmp);
     }
 
-    void encode(const std::string &fileName,const std::string &outputFileName, int quality) {
-        auto *source = new Image(isTextOutput,outputFile);
+    void encode(const std::string &fileName, const std::string &outputFileName, int quality) {
+        auto *source = new Image(isTextOutput, outputFile);
         source->ImageSetup(fileName);
         auto *enc = new QuadTreeEncoder(isTextOutput, outputFile, quality);
         source->Load();
@@ -79,13 +81,13 @@ public:
         delete source;
     };
 
-    void decode(const std::string &fileName,const std::string &outputFileName, int phases) {
+    void decode(const std::string &fileName, const std::string &outputFileName, int phases) {
         int width, height;
         std::string extension;
         Transforms *transforms2;
         std::tie(transforms2, extension) = LoadTransformsFromJson(fileName, &width, &height);
         auto start = std::chrono::high_resolution_clock::now();
-        auto *dec = new Decoder(width, height, transforms2->channels,isTextOutput,outputFile);
+        auto *dec = new Decoder(width, height, transforms2->channels, isTextOutput, outputFile);
         auto finish = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(finish - start);
 
@@ -173,4 +175,4 @@ private:
 };
 
 
-#endif //TESTFRACTAL_FRACTALALGO_H
+#endif TESTFRACTAL_FRACTALALGO_H

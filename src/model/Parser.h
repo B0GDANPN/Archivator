@@ -7,9 +7,10 @@
 #include <string>
 #include <filesystem>
 #include <fstream>
+
 // порядок аргументов enc/dec -o opt1 .. optN -f file1 .. fileM
 // или текстовый файл с такими строками
-class Parser{
+class Parser {
 public:
     static std::vector<Dto> parse(const std::vector<std::string> &lines) {
         std::istringstream iss;
@@ -22,7 +23,7 @@ public:
             while (iss >> token) {
                 tokens.push_back(token);
             }
-            if (tokens.empty() || (tokens[0]!="enc" &&tokens[0]!="dec")){
+            if (tokens.empty() || (tokens[0] != "enc" && tokens[0] != "dec")) {
                 tokens.clear();
                 continue;
             }
@@ -31,7 +32,7 @@ public:
             std::vector<std::string> files;
             bool collectOptions = false;
             bool collectFiles = false;
-            for (int i=1;i<tokens.size();i++){
+            for (int i = 1; i < tokens.size(); i++) {
                 if (tokens[i] == "-o") {
                     collectOptions = true;
                     collectFiles = false;
@@ -46,7 +47,7 @@ public:
                     }
                 }
             }
-            result.emplace_back(action, options,files);
+            result.emplace_back(action, options, files);
             tokens.clear();
         }
         return result;
@@ -86,4 +87,4 @@ private:
  *
  * */
 
-#endif //ARCHIVATOR_PARSER_H
+#endif ARCHIVATOR_PARSER_H

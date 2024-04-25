@@ -119,4 +119,4 @@ public:
 };
 
 
-#endif //ARCHIVATOR_CONTROLLER_H
+#endif ARCHIVATOR_CONTROLLER_H

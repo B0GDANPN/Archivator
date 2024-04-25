@@ -5,7 +5,6 @@
 #include <vector>
 #include "Image.h"
 #include "IFSTransform.h"
-//#include "forTesting/controller/IController.h"
 #include "../../src/controller/Controller.h"
 
 class Encoder : public IController {
@@ -127,4 +126,4 @@ public:
     Image img=*new Image(isTextOutput,outputFile);
 };
 
-#endif // E_H
+#endif E_H

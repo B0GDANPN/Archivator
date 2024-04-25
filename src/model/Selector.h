@@ -9,7 +9,7 @@
 
 class Selector {
 public:
-    static AlgorithmEnum getAlgorithmFromDto(const Dto &dto){
+    static AlgorithmEnum getAlgorithmFromDto(const Dto &dto) {
         std::string name = dto.files_[0];
         AlgorithmEnum algorithm = getAlgorithmFromName(name);
         return algorithm;
@@ -23,7 +23,7 @@ private:
             return AlgorithmEnum::QUANTIZATION;
         } else if (extension == ".png" || extension == ".jpg" || extension == ".jpeg" || extension == ".bmp") {
             return AlgorithmEnum::FRACTAL;
-        } else if (extension == ".mp3"|| extension==".wav") {
+        } else if (extension == ".mp3" || extension == ".wav") {
             return AlgorithmEnum::FLAC;
         }
         return AlgorithmEnum::ERROR;//mp4
@@ -31,4 +31,4 @@ private:
 };
 
 
-#endif //ARCHIVATOR_SELECTOR_H
+#endif ARCHIVATOR_SELECTOR_H

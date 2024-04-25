@@ -111,6 +111,7 @@ public:
             : IController(isTextOutput, outputFile) {
         //this->view = view;
     }
+
     void sendCommonInformation(const CommonInformation &commonInformation) override {
         sendMessage("FlacAlgo{ ");
         IController::sendCommonInformation(commonInformation);
@@ -118,8 +119,9 @@ public:
     }
 
     void sendErrorInformation(const std::string &error) override {
-        IController::sendErrorInformation("FlacAlgo{ "+error+"}\n");
+        IController::sendErrorInformation("FlacAlgo{ " + error + "}\n");
     }
+
     void sendGlobalParams() {
         std::ostringstream oss;
         oss << "FlacAlgo: globalSizeBlocks: " << globalSizeBlocks << ", globalOrder: " << globalOrder << ", k: "
@@ -355,4 +357,4 @@ private:
 
 };
 
-#endif //ARCHIVATOR_FLACALGO_H
+#endif ARCHIVATOR_FLACALGO_H

@@ -31,4 +31,4 @@ std::string toStr(const Dto &dto) {
         oss << option << ' ';
     return oss.str();
 }
-#endif //ARCHIVATOR_DTO_H
+#endif ARCHIVATOR_DTO_H

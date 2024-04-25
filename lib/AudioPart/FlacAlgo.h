@@ -357,4 +357,4 @@ private:
 
 };
 
-#endif //ARCHIVATOR_FLACALGO_H
+#endif ARCHIVATOR_FLACALGO_H

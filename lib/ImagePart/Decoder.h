@@ -73,6 +73,6 @@ private:
     Image img=*new Image(isTextOutput,outputFile);
 };
 
-#endif // DEC_H
+#endif DEC_H
 
 

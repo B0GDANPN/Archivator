@@ -13,4 +13,4 @@ struct MatrixInfo {
     std::vector<unsigned char> data;
     size_t dataSize{};
 };
-#endif //ARCHIVATOR_MATRIXINFO_H
+#endif ARCHIVATOR_MATRIXINFO_H

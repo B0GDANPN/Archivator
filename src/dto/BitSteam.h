@@ -5,6 +5,7 @@
 #ifndef ARCHIVATOR_BITSTEAM_H
 #define ARCHIVATOR_BITSTEAM_H
 #pragma once
+
 #include <vector>
 #include <cstdint>
 
@@ -32,4 +33,5 @@ struct BitStream {
         return bit;
     }
 };
-#endif //ARCHIVATOR_BITSTEAM_H
+
+#endif ARCHIVATOR_BITSTEAM_H

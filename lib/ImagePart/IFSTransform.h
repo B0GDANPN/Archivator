@@ -224,4 +224,4 @@ public:
 
 
 
-#endif // IFST_H
+#endif IFST_H

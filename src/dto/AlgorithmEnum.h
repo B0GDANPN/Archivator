@@ -11,4 +11,4 @@ enum class AlgorithmEnum {
     FLAC,
     ERROR
 };
-#endif //ARCHIVATOR_ALGORITHMENUM_H
+#endif ARCHIVATOR_ALGORITHMENUM_H

@@ -126,4 +126,4 @@ private:
 
 };
 
-#endif // QTE_H
+#endif QTE_H

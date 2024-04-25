@@ -4,6 +4,7 @@
 
 #ifndef TESTFRACTAL_ICONTROLLER_H
 #define TESTFRACTAL_ICONTROLLER_H
+
 #include "../dto/CommonInformation.h"
 #include <string>
 #include <fstream>
@@ -12,21 +13,25 @@
 #include <iostream>
 //#include "../view/View.h"
 #pragma once
+
 class IController {
 public:
     bool isTextOutput;
     std::string outputFile;
     //View view;
 
-    explicit IController(bool isTextOutput, std::string  outputFile/*,const View& view*/) : isTextOutput(isTextOutput), outputFile(std::move(outputFile))/*, view(view) */{}
-    void sendMessage(const std::string& message) const{
-        if (isTextOutput){
-            std::cout<<message;
+    explicit IController(bool isTextOutput, std::string outputFile/*,const View& view*/) : isTextOutput(isTextOutput),
+                                                                                           outputFile(std::move(
+                                                                                                   outputFile))/*, view(view) */{}
+
+    void sendMessage(const std::string &message) const {
+        if (isTextOutput) {
+            std::cout << message;
             //view.writeOutput(error);
-        } else{
+        } else {
             std::ofstream file(outputFile, std::ios::app);
 
-            if(file.is_open()) {
+            if (file.is_open()) {
                 file << message;
                 file.close();
             } else {
@@ -35,23 +40,25 @@ public:
             }
         }
     };
-    virtual void sendCommonInformation(const CommonInformation& commonInformation) {
+
+    virtual void sendCommonInformation(const CommonInformation &commonInformation) {
         std::stringstream oss;
-        oss<<"Compression ratio: 1:"<<commonInformation.compressionRatio<<'\n'<<
-           "Time: "<<commonInformation.time<<"ms \n"<<
-           "Size input data: "<<commonInformation.sizeInputData<<" bytes\n"<<
-           "Size output data: "<<commonInformation.sizeOutputData<<" bytes\n";
-        std::string tmp=oss.str();
+        oss << "Compression ratio: 1:" << commonInformation.compressionRatio << '\n' <<
+            "Time: " << commonInformation.time << "ms \n" <<
+            "Size input data: " << commonInformation.sizeInputData << " bytes\n" <<
+            "Size output data: " << commonInformation.sizeOutputData << " bytes\n";
+        std::string tmp = oss.str();
         sendMessage(tmp);
     };
-    virtual void sendErrorInformation(const std::string& error){
-        if (isTextOutput){
-            std::cout<<error;
+
+    virtual void sendErrorInformation(const std::string &error) {
+        if (isTextOutput) {
+            std::cout << error;
             //view.writeOutput(error);
-        } else{
+        } else {
             std::ofstream file(outputFile, std::ios::app);
 
-            if(file.is_open()) {
+            if (file.is_open()) {
                 file << error;
                 file.close();
             } else {
@@ -61,4 +68,5 @@ public:
         }
     };
 };
-#endif //TESTFRACTAL_ICONTROLLER_H
+
+#endif TESTFRACTAL_ICONTROLLER_H

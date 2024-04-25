@@ -8,4 +8,4 @@
 struct CommonInformation {
     int compressionRatio, time, sizeInputData, sizeOutputData;
 };
-#endif //ARCHIVATOR_COMMONINFORMATION_H
+#endif ARCHIVATOR_COMMONINFORMATION_H

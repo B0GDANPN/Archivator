@@ -13,7 +13,6 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 
 add_executable(MyExec
         ../src/main.cpp
-        ../src/controller/Controller.cpp
         ../src/controller/Controller.h
 )
 
@@ -25,4 +24,5 @@ target_link_libraries(MyExec PRIVATE ${OpenCV_LIBS})
 #add_subdirectory(lib/AudioPart)
 #add_subdirectory(lib/ImagePart)
 #add_subdirectory(lib/VideoPart)
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize=leak -fsanitize=undefined -g3")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=leak -fsanitize=undefined -fsanitize=address -pedantic -g3")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Ofast")

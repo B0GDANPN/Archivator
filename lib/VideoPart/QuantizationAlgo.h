@@ -18,7 +18,7 @@
 #include <chrono>
 #include "../../src/controller/Controller.h"
 #include <sstream>
-#include <opencv2/opencv.hpp>
+#include <opencv4/opencv2/opencv.hpp>
 #include <string>
 #include "../../src/dto/MatrixInfo.h"
 #include "../../src/dto/Rect.h"
@@ -67,7 +67,7 @@ public:
         double frameHeight = cap.get(cv::CAP_PROP_FRAME_HEIGHT);
         double channelCount = 3; // Цветное видео
         double pixelSize = 1; // 8-битное цветное видео
-        int sizeInputData = frameCount * frameWidth * frameHeight * channelCount * pixelSize;
+        int sizeInputData = static_cast<int>(frameCount * frameWidth * frameHeight * channelCount * pixelSize);
         if (!cap.isOpened()) {
             sendErrorInformation("Failed to open the video file.");
             return;
@@ -82,7 +82,7 @@ public:
 
         size_t sum;
         bool end_flag = false;
-        sendMessage("Size frame: " + std::to_string(frame.size) + "\n");
+        sendMessage("Size frame: " + std::to_string(frameHeight * frameWidth * channelCount * pixelSize) + "\n");
         ofs << frame.rows << "," << frame.cols << std::endl;
 
         while (!frame.empty()) {
@@ -118,7 +118,7 @@ public:
                 start_scene++;
             }
             cap.read(frame);
-            std::string filename = subframedata;// std::string subframedata= "sampleZip/subframe/"
+            const std::string &filename = subframedata;// std::string subframedata= "sampleZip/subframe/"
             sendMessage("Size of buffer: " + std::to_string(subFrameBuffer.size() * sizeof(cv::Vec3b) / 1024) + '\n');
             writeBufferToFile(subFrameBuffer, filename);
         }
@@ -385,10 +385,11 @@ private:
         ofs.close();
     }
 
-    static std::vector<std::pair<cv::Point, cv::Mat>> splitMatrices(cv::Mat image, cv::Mat silents, int threshold) {
+    static std::vector<std::pair<cv::Point, cv::Mat>>
+    splitMatrices(const cv::Mat &image, const cv::Mat &silents, int threshold) {
         std::vector<std::pair<cv::Point, cv::Mat>> result;
         std::queue<std::pair<cv::Point, cv::Mat>> to_process;
-        to_process.push({cv::Point(0, 0), silents});
+        to_process.emplace(cv::Point(0, 0), silents);
         int counter = 0;
 
         while (!to_process.empty()) {
@@ -401,12 +402,12 @@ private:
                 int width = matrix.cols / 2;
                 int height = matrix.rows / 2;
 
-                to_process.push({top_left, matrix(cv::Rect(0, 0, width, height))});
-                to_process.push({top_left + cv::Point(width, 0), matrix(cv::Rect(width, 0, width, height))});
-                to_process.push({top_left + cv::Point(0, height), matrix(cv::Rect(0, height, width, height))});
-                to_process.push({top_left + cv::Point(width, height), matrix(cv::Rect(width, height, width, height))});
+                to_process.emplace(top_left, matrix(cv::Rect(0, 0, width, height)));
+                to_process.emplace(top_left + cv::Point(width, 0), matrix(cv::Rect(width, 0, width, height)));
+                to_process.emplace(top_left + cv::Point(0, height), matrix(cv::Rect(0, height, width, height)));
+                to_process.emplace(top_left + cv::Point(width, height), matrix(cv::Rect(width, height, width, height)));
             } else {
-                result.push_back({top_left, image(cv::Rect(top_left.x, top_left.y, matrix.cols, matrix.rows))});
+                result.emplace_back(top_left, image(cv::Rect(top_left.x, top_left.y, matrix.cols, matrix.rows)));
             }
             if (counter++ == SPLIT_DEPTH) return result;
         }

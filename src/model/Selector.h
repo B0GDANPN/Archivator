@@ -16,8 +16,9 @@ public:
     };
 
 private:
-    static AlgorithmEnum getAlgorithmFromName(const std::string &name) {
-        std::string extension = std::filesystem::path(name).extension();
+    static AlgorithmEnum getAlgorithmFromName(const std::string &name){
+        std::filesystem::path filePath(name);
+        std::string extension = filePath.extension().string();
         if (extension == ".mp4") {
             return AlgorithmEnum::QUANTIZATION;
         } else if (extension == ".png" || extension == ".jpg" || extension == ".jpeg" || extension == ".bmp") {

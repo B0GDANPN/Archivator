@@ -18,7 +18,7 @@
 #include <chrono>
 #include "../../src/controller/Controller.h"
 #include <sstream>
-#include <opencv4/opencv2/opencv.hpp>
+#include <opencv2/opencv.hpp>
 #include <string>
 #include "../../src/dto/MatrixInfo.h"
 #include "../../src/dto/Rect.h"

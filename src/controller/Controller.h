@@ -21,6 +21,7 @@
 #include "../../lib/AudioPart/FlacAlgo.h"
 //#include "../view/View.h"
 #pragma once
+namespace fs = std::filesystem;
 
 // порядок аргументов enc/dec -o opt1 .. optN -f file1 .. fileM
 // или текстовый файл с такими строками
@@ -32,12 +33,21 @@ public:
     }
 
     void run(const std::vector<std::string> &argv) {
+        fs::path dir = "storageEncoded";
+        if (!fs::exists(dir))
+            fs::create_directory(dir);
+        dir = "storageDecoded";
+        if (!fs::exists(dir))
+            fs::create_directory(dir);
+        fs::path currentPath = fs::current_path();
+        fs::path toSaveEncodedPath = currentPath / "storageEncoded";
+        fs::path toSaveDecodedPath = currentPath / "storageDecoded";
         std::vector<std::string> tokens;
         std::string token;
         std::vector<std::string> argsToParse;
         for (const auto &line: argv) {
-            if (std::filesystem::exists(line)) {
-                if (std::filesystem::path(line).extension() == ".txt") {
+            if (fs::exists(line)) {
+                if (fs::path(line).extension() == ".txt") {
                     std::vector<std::string> tmp = Parser::getArgFromTxt(line);
                     argsToParse.insert(argsToParse.end(), tmp.begin(), tmp.end());
                 } else {
@@ -53,17 +63,23 @@ public:
             AlgorithmEnum algo = Selector::getAlgorithmFromDto(arg);
             bool isTextOutput = true;
             std::string outputFile;
+            fs::current_path(toSaveEncodedPath);
             switch (algo) {
                 case AlgorithmEnum::QUANTIZATION:
                     try {
                         auto quantizationAlgo = *new QuantizationAlgo(isTextOutput, outputFile);
+                        std::string videoName = arg.files_[0];
+                        size_t pos = videoName.rfind(".mp4");
+                        fs::path dirName = videoName.substr(0, pos);
                         if (arg.action_) {//encode
-                            quantizationAlgo.encode(arg.files_[0], arg.files_[1], arg.files_[2], arg.files_[3],
-                                                    arg.files_[4]);
+                            fs::create_directory(dirName);
+                            fs::current_path(dirName);
+                            quantizationAlgo.encode(videoName);
                         } else {//decode
-                            quantizationAlgo.encode(arg.files_[0], arg.files_[1], arg.files_[2], arg.files_[3],
-                                                    arg.files_[4]);
+                            fs::current_path(dirName);
+                            quantizationAlgo.decode();
                         }
+                        fs::current_path("..");
                         delete &quantizationAlgo;
                     }
                     catch (std::exception) {
@@ -75,10 +91,10 @@ public:
                         auto fractalAlgo = *new FractalAlgo(isTextOutput, outputFile);
                         if (arg.action_) {//encode
                             int quality = stoi(arg.options_[0]);
-                            fractalAlgo.encode(arg.files_[0], arg.files_[1], quality);
+                            fractalAlgo.encode(arg.files_[0], quality);
                         } else {//decode
                             int phases = stoi(arg.options_[0]);
-                            fractalAlgo.decode(arg.files_[0], arg.files_[1], phases);
+                            fractalAlgo.decode(arg.files_[0], phases);
                         }
                         delete &fractalAlgo;
                     }
@@ -90,9 +106,9 @@ public:
                     try {
                         auto flacAlgo = *new FlacAlgo(isTextOutput, outputFile);
                         if (arg.action_) {//encode
-                            flacAlgo.encode(arg.files_[0], arg.files_[1]);
+                            flacAlgo.encode(arg.files_[0]);
                         } else {//decode
-                            flacAlgo.decode(arg.files_[0], arg.files_[1]);
+                            flacAlgo.decode(arg.files_[0]);
                         }
                         delete &flacAlgo;
                     }

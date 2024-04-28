@@ -211,6 +211,7 @@ public:
     }
 
     void ImageSetup(const std::string &fileName) {
+
         size_t lastDotIndex = fileName.rfind('.');
         this->fileName = fileName.substr(0, lastDotIndex);
         this->extension = fileName.substr(lastDotIndex + 1);

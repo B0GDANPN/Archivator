@@ -20,3 +20,5 @@ add_executable(MyExec
 )
 
 target_link_libraries(MyExec PRIVATE ${OpenCV_LIBS})
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=leak -fsanitize=undefined -fsanitize=address -pedantic -g3")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Ofast")

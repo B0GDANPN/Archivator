@@ -18,8 +18,9 @@
 #include <utility>
 #include <filesystem>
 #include "../../src/controller/IController.h"
-//#include "../../src/controller/Controller.h"
+
 using json = nlohmann::json;
+namespace fs = std::filesystem;
 
 class FractalAlgo : public IController {
 public:
@@ -54,7 +55,9 @@ public:
         sendMessage(tmp);
     }
 
-    void encode(const std::string &fileName, const std::string &outputFileName, int quality) {
+    void encode(const std::string &fileName, int quality) {
+        size_t pos = fileName.rfind('.');
+        std::string outputFileName = fileName.substr(0, pos) + ".json";
         auto *source = new Image(isTextOutput, outputFile);
         source->ImageSetup(fileName);
         auto *enc = new QuadTreeEncoder(isTextOutput, outputFile, quality);
@@ -81,7 +84,9 @@ public:
         delete source;
     };
 
-    void decode(const std::string &fileName, const std::string &outputFileName, int phases) {
+    void decode(const std::string &imageName, int phases) {
+        size_t pos = imageName.rfind('.');
+        std::string fileName = imageName.substr(0, pos) + ".json";
         int width, height;
         std::string extension;
         Transforms *transforms2;
@@ -94,8 +99,8 @@ public:
         for (int phase = 1; phase <= phases; phase++) {
             dec->Decode(transforms2);
         }
-        //std::string newFileName = fileName.substr(0, fileName.rfind('.'));
-        Image *producer = dec->GetNewImage(outputFileName, 0);
+        fs::path outputImagePath = "../storageDecoded" + imageName;// путь сохранения
+        Image *producer = dec->GetNewImage(outputImagePath, 0);
         producer->Save();
         int ratio = width * height * producer->channels / transforms2->getSize();
         CommonInformation information = {ratio, static_cast<int>(duration.count()), transforms2->getSize(),

@@ -130,8 +130,10 @@ public:
         sendMessage(str);
     }
 
-    void encode(const std::string &inputFilename, const std::string &outputFilename) {
+    void encode(const std::string &inputFilename) {
         auto start = std::chrono::high_resolution_clock::now();
+        size_t pos = inputFilename.rfind('.');
+        std::string outputFilename = inputFilename.substr(0, pos) + ".flac";// путь сохранения
         WAVHeader header{};
         if (!readWAVHeader(inputFilename, header)) {
             sendErrorInformation("Failed to read WAV file.\n");
@@ -178,8 +180,10 @@ public:
         sendGlobalParams();
     }
 
-    void decode(const std::string &inputFilename, const std::string &outputFilename) {
+    void decode(const std::string &inputFilename) {
         auto start = std::chrono::high_resolution_clock::now();
+        size_t pos = inputFilename.rfind('.');
+        fs::path outputFilename = "../storageDecoded" + inputFilename.substr(0, pos) + ".wav";// путь сохранения
         std::ofstream outputFile(outputFilename, std::ios::binary);
         std::ifstream inputFile(inputFilename, std::ios::binary);
 
@@ -232,7 +236,7 @@ public:
                     exit(-1);
                 }
             }
-            sendMessage("WAV data saved to: " + outputFilename + '\n');
+            sendMessage("WAV data saved to: " + outputFilename.string() + '\n');
             outputFile.close();
         } else {
             sendErrorInformation("Failed to read FLAC file.\n");

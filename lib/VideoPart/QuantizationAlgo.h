@@ -9,6 +9,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <filesystem>
 #include <utility>
 #include <vector>
 #include <cstdint>
@@ -16,7 +17,6 @@
 #include <cmath>
 #include <algorithm>
 #include <chrono>
-#include "../../src/controller/Controller.h"
 #include <sstream>
 #include <opencv2/opencv.hpp>
 #include <string>
@@ -28,6 +28,7 @@
 const size_t SPLIT_DEPTH = 16;
 const size_t NOIZES = 3000000;
 const size_t NOIZES_PER_SUBFRAME = 500000;
+namespace fs = std::filesystem;
 
 class QuantizationAlgo : public IController {
 public:
@@ -56,12 +57,15 @@ public:
         sendMessage(str);
     }
 
-    void encode(const std::string &inputFilename, const std::string &framedata, const std::string &matdata,
-                const std::string &subframedata, const std::string &outputFilename) {
+    void encode(const std::string &inputFilename) {
+        std::string framedata = "framedata.csv";
+        std::string matdata = "matdata.bin";
+        std::string subframedata = "subframe";
+        fs::create_directory(subframedata);
         sendMessage("Encoding... video\n");
         auto start = std::chrono::high_resolution_clock::now();
-        std::ofstream ofs(framedata);//std::string framedata="sampleZip/framedata.csv"
-        cv::VideoCapture cap(inputFilename);//std::string &inputFilename="sample2.mp4"
+        std::ofstream ofs(framedata);
+        cv::VideoCapture cap(inputFilename);
         double frameCount = cap.get(cv::CAP_PROP_FRAME_COUNT);
         double frameWidth = cap.get(cv::CAP_PROP_FRAME_WIDTH);
         double frameHeight = cap.get(cv::CAP_PROP_FRAME_HEIGHT);
@@ -124,13 +128,9 @@ public:
         }
         auto finish = std::chrono::high_resolution_clock::now();
         auto duration = static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count());
-        std::filesystem::path frameDataPath(framedata);
-        std::filesystem::path subframePath(subframedata);
-        std::filesystem::path path3Path(matdata);
-
-        uintmax_t size1 = std::filesystem::file_size(frameDataPath);
-        uintmax_t size2 = std::filesystem::file_size(subframePath);
-        uintmax_t size3 = std::filesystem::file_size(matdata);
+        uintmax_t size1 = fs::file_size(framedata);
+        uintmax_t size2 = fs::file_size(subframedata);
+        uintmax_t size3 = fs::file_size(matdata);
 
         int sizeOutputData = static_cast<int>(size1 + size2 + size3);
         int ratio = sizeInputData / sizeOutputData;
@@ -142,16 +142,20 @@ public:
     //const std::string& framedata = "sampleZip/framedata.csv",
     //                       const std::string& matdata = "sampleZip/matdata.bin",
     //                       const std::string& subframedata = "sampleZip/subframe/"
-    void decode(const std::string &framedata,
-                const std::string &matdata,
-                const std::string &subframedata, const std::string &output) {
-        std::filesystem::path frameDataPath(framedata);
-        std::filesystem::path subframePath(subframedata);
-        std::filesystem::path path3Path(matdata);
+    void decode() {
+        std::string framedata = "framedata.csv";
+        std::string matdata = "matdata.bin";
+        std::string subframedata = "subframe";
+        fs::path currentPath = fs::current_path();
+        // Получение имени текущей директории
+        // Преобразование в строку и удаление части '_encoded'
+        std::string tmp = currentPath.filename().string();
+        size_t pos = tmp.rfind("_encoded");
+        fs::path outputPath = "../../storageDecoded" + tmp.substr(0, pos) + ".mp4";// путь сохранения
 
-        uintmax_t size1 = std::filesystem::file_size(frameDataPath);
-        uintmax_t size2 = std::filesystem::file_size(subframePath);
-        uintmax_t size3 = std::filesystem::file_size(matdata);
+        uintmax_t size1 = fs::file_size(framedata);
+        uintmax_t size2 = fs::file_size(subframedata);
+        uintmax_t size3 = fs::file_size(matdata);
 
         int sizeInputData = static_cast<int>(size1 + size2 + size3);
         auto start = std::chrono::high_resolution_clock::now();
@@ -178,7 +182,7 @@ public:
         sendMessage(std::to_string(rows) + ' ' + std::to_string(cols) + '\n');
         cv::Mat main(rows, cols, CV_8UC3, cv::Scalar(0, 0, 255));
 
-        cv::VideoWriter videoWriter(output, cv::VideoWriter::fourcc('H', '2', '5', '6'), 30, cv::Size(cols, rows));
+        cv::VideoWriter videoWriter(outputPath, cv::VideoWriter::fourcc('H', '2', '5', '6'), 30, cv::Size(cols, rows));
         if (!videoWriter.isOpened()) {
             sendErrorInformation("Unable to open the VideoWriter\n");
             return;
@@ -229,8 +233,7 @@ public:
                 exit(4);
             }
         }
-        std::filesystem::path resultOutput(output);
-        int sizeOutputData = static_cast<int>(std::filesystem::file_size(resultOutput));
+        int sizeOutputData = static_cast<int>(fs::file_size(outputPath));
         int ration = sizeInputData / sizeOutputData;
         auto finish = std::chrono::high_resolution_clock::now();
         auto duration = static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count());

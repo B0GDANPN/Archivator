@@ -107,9 +107,8 @@ class FlacAlgo : public IController {
     friend class LPC;
 
 public:
-    explicit FlacAlgo(bool isTextOutput, const std::string &outputFile)
-            : IController(isTextOutput, outputFile) {
-        //this->view = view;
+    explicit FlacAlgo(bool isTextOutput, const std::string &outputFile,std::ostringstream& ref_oss)
+            : IController(isTextOutput, outputFile,ref_oss) {
     }
 
     void sendCommonInformation(const CommonInformation &commonInformation) override {
@@ -130,7 +129,9 @@ public:
         sendMessage(str);
     }
 
-    void encode(const std::string &inputFilename) {
+    void encode(std::string &inputFilename) {
+        size_t lastSlashPos = inputFilename.find_last_of('/');
+        inputFilename = lastSlashPos != std::string::npos ? inputFilename.substr(lastSlashPos + 1) : inputFilename;
         auto start = std::chrono::high_resolution_clock::now();
         size_t pos = inputFilename.rfind('.');
         std::string outputFilename = inputFilename.substr(0, pos) + ".flac";// путь сохранения
@@ -183,7 +184,7 @@ public:
     void decode(const std::string &inputFilename) {
         auto start = std::chrono::high_resolution_clock::now();
         size_t pos = inputFilename.rfind('.');
-        fs::path outputFilename = "../storageDecoded" + inputFilename.substr(0, pos) + ".wav";// путь сохранения
+        fs::path outputFilename = "../storageDecoded/" + inputFilename.substr(0, pos) + ".wav";// путь сохранения
         std::ofstream outputFile(outputFilename, std::ios::binary);
         std::ifstream inputFile(inputFilename, std::ios::binary);
 

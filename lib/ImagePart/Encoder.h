@@ -19,8 +19,8 @@ public:
         IController::sendErrorInformation("FractalAlgo{ " + error + "}\n");
     }
 
-    Encoder(bool isTextOutput, const std::string &outputFile)
-            : IController(isTextOutput, outputFile){
+    Encoder(bool isTextOutput, const std::string &outputFile,std::ostringstream& ref_oss)
+            : IController(isTextOutput, outputFile,ref_oss){
         img.isTextOutput=isTextOutput;
         img.outputFile=outputFile;
         //this->view = view;
@@ -123,7 +123,7 @@ public:
     };
 
 public:
-    Image img{isTextOutput,outputFile};
+    Image img{isTextOutput,outputFile,oss};
 };
 
 #endif E_H

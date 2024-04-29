@@ -18,10 +18,10 @@ class IController {
 public:
     bool isTextOutput;
     std::string outputFile;
-    mutable std::ostringstream oss;
+    std::ostringstream &oss;
 
-    explicit IController(bool isTextOutput, std::string outputFile) : isTextOutput(isTextOutput),
-                                                                      outputFile(std::move(outputFile)) {}
+    explicit IController(bool isTextOutput, std::string outputFile,std::ostringstream& ref_oss) : isTextOutput(isTextOutput),
+                                                                      outputFile(std::move(outputFile)), oss(ref_oss) {}
 
     void sendMessage(const std::string &message) const {
         if (isTextOutput) {

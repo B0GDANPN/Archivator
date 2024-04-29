@@ -2,20 +2,23 @@
 #define DEC_H
 
 #pragma once
+
 #include <string>
 #include <utility>
 #include <vector>
 #include "Image.h"
 #include "IFSTransform.h"
-class Decoder{
+
+class Decoder {
 public:
 
-    Decoder(int width, int height, int channels,bool isTextOutput,const std::string& outputFile) {
-        this->isTextOutput=isTextOutput;
-        this->outputFile=outputFile;
-        img.isTextOutput=isTextOutput;
-        img.outputFile=outputFile;
-        img.channels =channels;
+    Decoder(int width, int height, int channels, bool isTextOutput, const std::string &outputFile,
+            std::ostringstream &ref_oss) : isTextOutput(isTextOutput),
+                                           outputFile(outputFile), ref_oss(ref_oss) {
+
+        img.isTextOutput = isTextOutput;
+        img.outputFile = outputFile;
+        img.channels = channels;
         img.width = width;
         img.height = height;
         img.originalSize = width * height * channels;
@@ -30,7 +33,9 @@ public:
             img.imagedata3[i] = 127;
         }
     }
-    ~Decoder()=default;
+
+    ~Decoder() = default;
+
     void Decode(Transforms *transforms) {
         Transform::iterator iter;
 
@@ -49,8 +54,9 @@ public:
                 iter[0]->Execute(origImage, img.width, origImage, img.width, false);
         }
     }
+
     Image *GetNewImage(const std::string &fileName, int channel) const {
-        auto *temp = new Image(isTextOutput,outputFile);
+        auto *temp = new Image(isTextOutput, outputFile, ref_oss);
         temp->ImageSetup(fileName);
         temp->channels = img.channels;
         temp->width = img.width;
@@ -66,11 +72,13 @@ public:
             temp->SetChannelData((!channel ? 3 : 1), img.imagedata3, sizeChannel);
         return temp;
     }
+
 public:
     bool isTextOutput;
     std::string outputFile;
+    std::ostringstream &ref_oss;
 private:
-    Image img{isTextOutput,outputFile};
+    Image img{isTextOutput, outputFile, ref_oss};
 };
 
 #endif DEC_H

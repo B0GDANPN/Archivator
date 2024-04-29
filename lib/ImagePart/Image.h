@@ -14,7 +14,7 @@
 #include <cstring>
 #include <cmath>
 #include "../../src/controller/Controller.h"
-
+#include <filesystem>
 typedef unsigned char PixelValue;
 
 
@@ -30,7 +30,7 @@ public:
     std::string extension;
     int originalSize = 0;
 public:
-    Image(bool isTextOutput, const std::string &outputFile) : IController(isTextOutput, outputFile) {};
+    Image(bool isTextOutput, const std::string &outputFile,std::ostringstream& ref_oss) : IController(isTextOutput, outputFile,ref_oss) {};
 
     void SendInfoModifiedImage(int newWidth, int newHeight) {
         std::ostringstream oss;
@@ -70,6 +70,7 @@ public:
 
     void Load() {
         std::string fullName = (this->fileName + '.' + this->extension);
+        std::string curDir=std::filesystem::current_path();
         unsigned char *original_data = stbi_load(fullName.c_str(), &width, &height, &channels, 0);
         if (!original_data) {
             sendErrorInformation("Error: Could not load image\n");

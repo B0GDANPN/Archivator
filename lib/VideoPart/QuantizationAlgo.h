@@ -32,16 +32,15 @@ namespace fs = std::filesystem;
 
 class QuantizationAlgo : public IController {
 public:
-    explicit QuantizationAlgo(bool isTextOutput, const std::string &outputFile)
-            : IController(isTextOutput, outputFile) {
-        //this->view = view;
-    }
+    explicit QuantizationAlgo(bool isTextOutput, const std::string &outputFile,std::ostringstream& shared_oss)
+            : IController(isTextOutput, outputFile,shared_oss) {}
 
     void sendCommonInformation(const CommonInformation &commonInformation) override {
         sendMessage("QuantizationAlgo{ ");
         IController::sendCommonInformation(commonInformation);
         sendMessage("}\n");
     }
+
     /*QuantizationAlgo(const QuantizationAlgo& other)= default;
 
     QuantizationAlgo& operator=(const QuantizationAlgo& other)=default;
@@ -64,7 +63,9 @@ public:
         sendMessage(str);
     }
 
-    void encode(const std::string &inputFilename) {
+    void encode(std::string &inputFilename) {
+        size_t lastSlashPos = inputFilename.find_last_of('/');
+        inputFilename = lastSlashPos != std::string::npos ? inputFilename.substr(lastSlashPos + 1) : inputFilename;
         std::string framedata = "framedata.csv";
         std::string matdata = "matdata.bin";
         std::string subframedata = "subframe";
@@ -158,7 +159,7 @@ public:
         // Преобразование в строку и удаление части '_encoded'
         std::string tmp = currentPath.filename().string();
         size_t pos = tmp.rfind("_encoded");
-        fs::path outputPath = "../../storageDecoded" + tmp.substr(0, pos) + ".mp4";// путь сохранения
+        fs::path outputPath = "../../storageDecoded/" + tmp.substr(0, pos) + ".mp4";// путь сохранения
 
         uintmax_t size1 = fs::file_size(framedata);
         uintmax_t size2 = fs::file_size(subframedata);

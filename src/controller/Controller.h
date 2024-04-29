@@ -27,12 +27,12 @@ namespace fs = std::filesystem;
 // или текстовый файл с такими строками
 class Controller : public IController {
 public:
-    explicit Controller(bool isTextOutput, const std::string &outputFile)
-            : IController(isTextOutput, outputFile) {}
+    explicit Controller(bool isTextOutput, const std::string &outputFile,std::ostringstream& ref_oss)
+            : IController(isTextOutput, outputFile,ref_oss) {}
 
     //Controller() : IController(true, "") {}
 
-    std::string start(const std::string &str) {
+    void start(const std::string &str) {
         std::istringstream iss(str);
         std::vector<std::string> argv;
         std::string line;
@@ -71,7 +71,7 @@ public:
             switch (algo) {
                 case AlgorithmEnum::QUANTIZATION:
                     try {
-                        QuantizationAlgo quantizationAlgo{isTextOutput, outputFile};
+                        QuantizationAlgo quantizationAlgo{isTextOutput, outputFile,oss};
                         std::string videoName = arg.files_[0];
                         size_t pos = videoName.rfind(".mp4");
                         fs::path dirName = videoName.substr(0, pos);
@@ -84,7 +84,6 @@ public:
                             quantizationAlgo.decode();
                         }
                         fs::current_path("..");
-                        delete &quantizationAlgo;
                     }
                     catch (std::exception) {
                         sendErrorInformation("Error, need correct options: " + toStr(arg));
@@ -92,15 +91,16 @@ public:
                     break;
                 case AlgorithmEnum::FRACTAL:
                     try {
-                        FractalAlgo fractalAlgo{isTextOutput, outputFile};
+
+                        FractalAlgo fractalAlgo{isTextOutput, outputFile,oss};
+                        std::string argName=arg.files_[0];
                         if (arg.action_) {//encode
                             int quality = stoi(arg.options_[0]);
-                            fractalAlgo.encode(arg.files_[0], quality);
+                            fractalAlgo.encode(argName, quality);
                         } else {//decode
                             int phases = stoi(arg.options_[0]);
-                            fractalAlgo.decode(arg.files_[0], phases);
+                            fractalAlgo.decode(argName, phases);
                         }
-                        delete &fractalAlgo;
                     }
                     catch (std::exception) {
                         sendErrorInformation("Error, need correct options: " + toStr(arg));
@@ -108,13 +108,13 @@ public:
                     break;
                 case AlgorithmEnum::FLAC:
                     try {
-                        FlacAlgo flacAlgo{isTextOutput, outputFile};
+                        FlacAlgo flacAlgo{isTextOutput, outputFile,oss};
+                        std::string argName=arg.files_[0];
                         if (arg.action_) {//encode
-                            flacAlgo.encode(arg.files_[0]);
+                            flacAlgo.encode(argName);
                         } else {//decode
-                            flacAlgo.decode(arg.files_[0]);
+                            flacAlgo.decode(argName);
                         }
-                        delete &flacAlgo;
                     }
                     catch (std::exception) {
                         sendErrorInformation("Error, need correct options: " + toStr(arg) + '\n');
@@ -130,8 +130,6 @@ public:
                     break;
             }
         }
-        std::string res = oss.str();
-        return res;
     };
 
 };

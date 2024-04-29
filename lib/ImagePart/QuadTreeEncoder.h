@@ -12,8 +12,8 @@
 class QuadTreeEncoder : public Encoder {
 public:
 
-    explicit QuadTreeEncoder(bool isTextOutput, const std::string &outputFile, int quality = 100) : Encoder(
-            isTextOutput, outputFile) {
+    explicit QuadTreeEncoder(bool isTextOutput, const std::string &outputFile,std::ostringstream& ref_oss, int quality = 100) : Encoder(
+            isTextOutput, outputFile,ref_oss) {
         this->quality = quality;
     };
 

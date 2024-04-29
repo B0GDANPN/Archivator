@@ -81,21 +81,21 @@ private:
         return selectedFiles;
     }*/
 
-    class Button: public sf::Drawable, public sf::Transformable {
+    class Button : public sf::Drawable, public sf::Transformable {
     public:
-        Button(const std::string& text, const sf::Vector2f& position, bool a, bool selected, sf::Font& font)
-        : m_text(text, font) {
+        Button(const std::string &text, const sf::Vector2f &position, bool a, bool selected, sf::Font &font)
+                : m_text(text, font) {
             m_sprite.setFillColor(sf::Color::White);
             m_sprite.setOutlineThickness(2);
             m_sprite.setOutlineColor(sf::Color::Black);
-            if (a){
+            if (a) {
                 m_sprite.setSize(sf::Vector2f(100, 50));
                 m_text.setCharacterSize(32);
                 m_text.setPosition(position + sf::Vector2f(10, 5));
             } else {
                 m_sprite.setSize(sf::Vector2f(300, 100));
                 m_text.setCharacterSize(64);
-                m_text.setPosition(position + sf::Vector2f(250 - 35*text.size(), 10));
+                m_text.setPosition(position + sf::Vector2f(250 - 35 * text.size(), 10));
             }
             m_sprite.setPosition(position);
 
@@ -116,7 +116,7 @@ private:
             }
         }
 
-        virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const override {
+        virtual void draw(sf::RenderTarget &target, sf::RenderStates states) const override {
             target.draw(m_sprite, states);
             target.draw(m_text, states);
         }
@@ -128,13 +128,13 @@ private:
     private:
         sf::RectangleShape m_sprite;
         sf::Text m_text;
-        bool m_isSelected;
+        bool m_isSelected{};
     };
 
     //Controller controller;
 
 public:
-    View(/*Controller controller*/)/*:controller(controller)*/ {}
+    View(/*Controller controller*/)/*:controller(controller)*/ = default;
 
     void start() {
         sf::RenderWindow window(sf::VideoMode(1200, 800), "SFML Window");
@@ -212,7 +212,7 @@ public:
 
         std::string inputStr = "";
         std::string outputFilesStr = "";
-        
+
         int writeArea = 0;
 
         while (window.isOpen()) {
@@ -286,11 +286,20 @@ public:
                             textOutButton.setSelected(false);
                             //controller.setOutput(false);
                         } else if (startButton.getGlobalBounds().contains(event.mouseButton.x, event.mouseButton.y)) {
-                            //std::string outStr = controller.start(inputStr, outputFilesStr);
-                            //printText(outStr, outputText);
-                        }else if (inputArea.getGlobalBounds().contains(event.mouseButton.x, event.mouseButton.y)) {
+                            bool isTextOutput = textOutButton.isPressed();
+                            std::string outputFile;
+                            if (!isTextOutput) {
+                                outputFile = outputFilesStr;
+                            }
+                            std::ostringstream oss;
+                            std::ostringstream &ref_oss = oss;
+                            Controller controller{textOutButton.isPressed(), outputFile, ref_oss};
+                            controller.start(inputStr);
+                            std::string outStr = oss.str();
+                            printText(outStr, outputText, sf::Vector2f(700, 300));
+                        } else if (inputArea.getGlobalBounds().contains(event.mouseButton.x, event.mouseButton.y)) {
                             writeArea = 0;
-                        }else if (outfileArea.getGlobalBounds().contains(event.mouseButton.x, event.mouseButton.y)) {
+                        } else if (outfileArea.getGlobalBounds().contains(event.mouseButton.x, event.mouseButton.y)) {
                             writeArea = 1;
                         }/* else if (browseButton.getGlobalBounds().contains(event.mouseButton.x, event.mouseButton.y)) {
                             std::vector<std::wstring> selectedFiles = selectFiles("");
@@ -339,33 +348,32 @@ public:
         }
     }
 
-    void printText(const std::string& str, sf::Text& outputText, const sf::Vector2f& area) {
+    static void printText(const std::string &str, sf::Text &outputText, const sf::Vector2f &area) {
         int line = 0;
         int maxLine = static_cast<int>(area.y / 1.25 / 24);
         int maxLen = static_cast<int>(area.x / 24 * 1.8);
-        std::cout << maxLine << " " << maxLen << "\n";
         int size[maxLine] = {};
         std::string outStr = "";
-        for (char c : str) {
+        for (char c: str) {
             if (c == '\n') {
-                if (line >= maxLine-1) {
+                if (line >= maxLine - 1) {
                     continue;
                 }
                 ++line;
                 outStr += '\n';
             } else {
-                if (line > maxLine-1) {
+                if (line > maxLine - 1) {
                     continue;
                 }
-            if (size[line] >= maxLen) {
-                if (line >= maxLine-1) {
-                    continue;
+                if (size[line] >= maxLen) {
+                    if (line >= maxLine - 1) {
+                        continue;
+                    }
+                    ++line;
+                    outStr += '\n';
                 }
-                ++line;
-                outStr += '\n';
-            }
-            ++size[line];
-            outStr += c;
+                ++size[line];
+                outStr += c;
             }
         }
         outputText.setString(outStr);

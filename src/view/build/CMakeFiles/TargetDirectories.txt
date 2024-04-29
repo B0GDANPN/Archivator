@@ -1,3 +1,0 @@
-D:/Projects/Cpp/view/build/CMakeFiles/SFMLProject.dir
-D:/Projects/Cpp/view/build/CMakeFiles/edit_cache.dir
-D:/Projects/Cpp/view/build/CMakeFiles/rebuild_cache.dir

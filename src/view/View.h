@@ -1,13 +1,20 @@
+//
+// Created by bogdan on 28.04.24.
+//
+
+#ifndef MYARCH_VIEW_H
+#define MYARCH_VIEW_H
+#pragma once
+
 #include <iostream>
-#include <windows.h>
 #include <string>
 #include <vector>
-#include <shobjidl.h>
 #include <SFML/Graphics.hpp>
+#include "../controller/Controller.h"
 
 class View {
 private:
-    std::vector<std::wstring> selectFiles(const std::string& initialPath) {
+    /*std::vector<std::wstring> selectFiles(const std::string& initialPath) {
         std::vector<std::wstring> selectedFiles;
 
         HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
@@ -76,23 +83,23 @@ private:
         CoUninitialize();
 
         return selectedFiles;
-    }
+    }*/
 
-    class Button: public sf::Drawable, public sf::Transformable {
+    class Button : public sf::Drawable, public sf::Transformable {
     public:
-        Button(const std::string& text, const sf::Vector2f& position, bool a, bool selected, sf::Font& font)
-        : m_text(text, font) {
+        Button(const std::string &text, const sf::Vector2f &position, bool a, bool selected, sf::Font &font)
+                : m_text(text, font) {
             m_sprite.setFillColor(sf::Color::White);
             m_sprite.setOutlineThickness(2);
             m_sprite.setOutlineColor(sf::Color::Black);
-            if (a){
+            if (a) {
                 m_sprite.setSize(sf::Vector2f(100, 50));
                 m_text.setCharacterSize(32);
                 m_text.setPosition(position + sf::Vector2f(10, 5));
             } else {
                 m_sprite.setSize(sf::Vector2f(300, 100));
                 m_text.setCharacterSize(64);
-                m_text.setPosition(position + sf::Vector2f(250 - 35*text.size(), 10));
+                m_text.setPosition(position + sf::Vector2f(250 - 35 * text.size(), 10));
             }
             m_sprite.setPosition(position);
 
@@ -113,7 +120,9 @@ private:
             }
         }
 
-        virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const override {
+        bool getSelected() { return m_isSelected; }
+
+        virtual void draw(sf::RenderTarget &target, sf::RenderStates states) const override {
             target.draw(m_sprite, states);
             target.draw(m_text, states);
         }
@@ -130,10 +139,13 @@ private:
 
     sf::Text inputText;
     sf::Text outputText;
-    //Controller controller;
-
 public:
-    View(/*Controller controller*/)/*:controller(controller)*/ {}
+    /*void setController(bool isTextOutput,const std::string& outputFile) {
+        controller.isTextOutput=isTextOutput;
+        controller.outputFile=outputFile;
+    }*/
+
+    //View(/*Controller controller*/)/*:controller(controller)*/ {}
 
     void start() {
         sf::RenderWindow window(sf::VideoMode(1200, 800), "SFML Window");
@@ -196,14 +208,14 @@ public:
         int line = 0;
 
         while (window.isOpen()) {
-            sf::Event event;
+            sf::Event event{};
             while (window.pollEvent(event)) {
                 if (event.type == sf::Event::Closed) {
                     window.close();
                 } else if (event.type == sf::Event::KeyPressed) {  // Ctrl+V
                     if (event.key.code == sf::Keyboard::V && sf::Keyboard::isKeyPressed(sf::Keyboard::LControl)) {
                         std::string str = sf::Clipboard::getString().toAnsiString();
-                        for (char c : str) {
+                        for (char c: str) {
                             if (c == '\n') {
                                 if (line >= 9) {
                                     continue;
@@ -292,9 +304,15 @@ public:
                             textOutButton.setSelected(false);
                             //controller.setOutput(false);
                         } else if (startButton.getGlobalBounds().contains(event.mouseButton.x, event.mouseButton.y)) {
-                            //std::string outputStr = controller.start(inputStr);
+                            bool isTextOutput = textOutButton.getSelected();
+                            std::string outputFile="";
+                            if (!isTextOutput){
+                                
+                            }
+                            Controller controller{isTextOutput,outputFile};
+                            controller.start(inputStr);
                             //outputText.setString(outputStr);
-                        } else if (browseButton.getGlobalBounds().contains(event.mouseButton.x, event.mouseButton.y)) {
+                        }/* else if (browseButton.getGlobalBounds().contains(event.mouseButton.x, event.mouseButton.y)) {
                             std::vector<std::wstring> selectedFiles = selectFiles("");
                             showStr.clear();
                             inputStr.clear();
@@ -324,7 +342,7 @@ public:
                                 }
                             }
                             inputText.setString(showStr);
-                        }
+                        }*/
                     }
                 }
             }
@@ -359,11 +377,11 @@ public:
         }
     }
 
-    void printText(std::string str) {
+    void writeOutput(std::string str) {//TODO дописывать
         int line = 0;
         int size[10] = {};
         std::string outStr = "";
-        for (char c : str) {
+        for (char c: str) {
             if (c == '\n') {
                 if (line >= 9) {
                     continue;
@@ -374,22 +392,19 @@ public:
                 if (line > 9) {
                     continue;
                 }
-            if (size[line] >= 53) {
-                if (line >= 9) {
-                    continue;
+                if (size[line] >= 53) {
+                    if (line >= 9) {
+                        continue;
+                    }
+                    ++line;
+                    outStr += '\n';
                 }
-                ++line;
-                outStr += '\n';
-            }
-            ++size[line];
-            outStr += c;
+                ++size[line];
+                outStr += c;
             }
         }
         outputText.setString(outStr);
     }
 };
 
-
-int main() {
-    (new View())->start();
-}
+#endif MYARCH_VIEW_H

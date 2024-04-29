@@ -32,8 +32,7 @@ namespace fs = std::filesystem;
 
 class QuantizationAlgo : public IController {
 public:
-public:
-    QuantizationAlgo(bool isTextOutput, const std::string &outputFile)
+    explicit QuantizationAlgo(bool isTextOutput, const std::string &outputFile)
             : IController(isTextOutput, outputFile) {
         //this->view = view;
     }
@@ -43,6 +42,14 @@ public:
         IController::sendCommonInformation(commonInformation);
         sendMessage("}\n");
     }
+    /*QuantizationAlgo(const QuantizationAlgo& other)= default;
+
+    QuantizationAlgo& operator=(const QuantizationAlgo& other)=default;
+    ~QuantizationAlgo()=default;
+
+    QuantizationAlgo(QuantizationAlgo&& other)  noexcept =default;
+
+    QuantizationAlgo& operator=(QuantizationAlgo &&other)  noexcept =default;*/
 
     void sendErrorInformation(const std::string &error) override {
         IController::sendErrorInformation("QuantizationAlgo{ " + error + "}\n");
@@ -499,5 +506,6 @@ private:
     }
 
 };
+
 
 #endif ARCHIVATOR_QUANTIZATIONALGO_H

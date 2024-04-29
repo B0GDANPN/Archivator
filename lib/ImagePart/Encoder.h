@@ -123,7 +123,7 @@ public:
     };
 
 public:
-    Image img=*new Image(isTextOutput,outputFile);
+    Image img{isTextOutput,outputFile};
 };
 
 #endif E_H

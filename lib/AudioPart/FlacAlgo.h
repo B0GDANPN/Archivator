@@ -107,7 +107,7 @@ class FlacAlgo : public IController {
     friend class LPC;
 
 public:
-    FlacAlgo(bool isTextOutput, const std::string &outputFile)
+    explicit FlacAlgo(bool isTextOutput, const std::string &outputFile)
             : IController(isTextOutput, outputFile) {
         //this->view = view;
     }

@@ -19,7 +19,7 @@
 #include "../../lib/ImagePart/FractalAlgo.h"
 #include "../../lib/VideoPart/QuantizationAlgo.h"
 #include "../../lib/AudioPart/FlacAlgo.h"
-//#include "../view/View.h"
+
 #pragma once
 namespace fs = std::filesystem;
 
@@ -28,11 +28,15 @@ namespace fs = std::filesystem;
 class Controller : public IController {
 public:
     explicit Controller(bool isTextOutput, const std::string &outputFile)
-            : IController(isTextOutput, outputFile) {
-        //this->view = view;
-    }
+            : IController(isTextOutput, outputFile) {}
 
-    void run(const std::vector<std::string> &argv) {
+    //Controller() : IController(true, "") {}
+
+    std::string start(const std::string &str) {
+        std::istringstream iss(str);
+        std::vector<std::string> argv;
+        std::string line;
+        while (std::getline(iss, line, '\n')) argv.push_back(line);
         fs::path dir = "storageEncoded";
         if (!fs::exists(dir))
             fs::create_directory(dir);
@@ -61,13 +65,13 @@ public:
         for (const auto &arg: args) {
             if (arg.files_.empty()) continue;
             AlgorithmEnum algo = Selector::getAlgorithmFromDto(arg);
-            bool isTextOutput = true;
-            std::string outputFile;
+            //bool isTextOutput = true;
+            //std::string outputFile;
             fs::current_path(toSaveEncodedPath);
             switch (algo) {
                 case AlgorithmEnum::QUANTIZATION:
                     try {
-                        auto quantizationAlgo = *new QuantizationAlgo(isTextOutput, outputFile);
+                        QuantizationAlgo quantizationAlgo{isTextOutput, outputFile};
                         std::string videoName = arg.files_[0];
                         size_t pos = videoName.rfind(".mp4");
                         fs::path dirName = videoName.substr(0, pos);
@@ -88,7 +92,7 @@ public:
                     break;
                 case AlgorithmEnum::FRACTAL:
                     try {
-                        auto fractalAlgo = *new FractalAlgo(isTextOutput, outputFile);
+                        FractalAlgo fractalAlgo{isTextOutput, outputFile};
                         if (arg.action_) {//encode
                             int quality = stoi(arg.options_[0]);
                             fractalAlgo.encode(arg.files_[0], quality);
@@ -104,7 +108,7 @@ public:
                     break;
                 case AlgorithmEnum::FLAC:
                     try {
-                        auto flacAlgo = *new FlacAlgo(isTextOutput, outputFile);
+                        FlacAlgo flacAlgo{isTextOutput, outputFile};
                         if (arg.action_) {//encode
                             flacAlgo.encode(arg.files_[0]);
                         } else {//decode
@@ -126,11 +130,9 @@ public:
                     break;
             }
         }
-
+        std::string res = oss.str();
+        return res;
     };
-    /*void Controller::setGui(const View &view) {
-        view=view;
-    }*/
 
 };
 

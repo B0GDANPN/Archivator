@@ -21,9 +21,9 @@ private:
         std::string extension = filePath.extension().string();
         if (extension == ".mp4") {
             return AlgorithmEnum::QUANTIZATION;
-        } else if (extension == ".png" || extension == ".jpg" || extension == ".jpeg" || extension == ".bmp") {
+        } else if (extension == ".tga" || extension == ".jpg" || extension == ".jpeg" || extension == ".bmp"|| extension=="json") {
             return AlgorithmEnum::FRACTAL;
-        } else if (extension == ".mp3" || extension == ".wav") {
+        } else if (extension == ".flac" || extension == ".wav") {
             return AlgorithmEnum::FLAC;
         }
         return AlgorithmEnum::ERROR;//mp4

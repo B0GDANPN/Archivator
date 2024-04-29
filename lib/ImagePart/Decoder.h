@@ -70,7 +70,7 @@ public:
     bool isTextOutput;
     std::string outputFile;
 private:
-    Image img=*new Image(isTextOutput,outputFile);
+    Image img{isTextOutput,outputFile};
 };
 
 #endif DEC_H

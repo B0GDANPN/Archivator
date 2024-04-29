@@ -1,7 +1,3 @@
-//
-// Created by bogdan on 28.04.24.
-//
-
 #ifndef MYARCH_VIEW_H
 #define MYARCH_VIEW_H
 #pragma once
@@ -9,8 +5,8 @@
 #include <iostream>
 #include <string>
 #include <vector>
+//#include <shobjidl.h>
 #include <SFML/Graphics.hpp>
-#include "../controller/Controller.h"
 
 class View {
 private:
@@ -85,21 +81,21 @@ private:
         return selectedFiles;
     }*/
 
-    class Button : public sf::Drawable, public sf::Transformable {
+    class Button: public sf::Drawable, public sf::Transformable {
     public:
-        Button(const std::string &text, const sf::Vector2f &position, bool a, bool selected, sf::Font &font)
-                : m_text(text, font) {
+        Button(const std::string& text, const sf::Vector2f& position, bool a, bool selected, sf::Font& font)
+        : m_text(text, font) {
             m_sprite.setFillColor(sf::Color::White);
             m_sprite.setOutlineThickness(2);
             m_sprite.setOutlineColor(sf::Color::Black);
-            if (a) {
+            if (a){
                 m_sprite.setSize(sf::Vector2f(100, 50));
                 m_text.setCharacterSize(32);
                 m_text.setPosition(position + sf::Vector2f(10, 5));
             } else {
                 m_sprite.setSize(sf::Vector2f(300, 100));
                 m_text.setCharacterSize(64);
-                m_text.setPosition(position + sf::Vector2f(250 - 35 * text.size(), 10));
+                m_text.setPosition(position + sf::Vector2f(250 - 35*text.size(), 10));
             }
             m_sprite.setPosition(position);
 
@@ -120,9 +116,7 @@ private:
             }
         }
 
-        bool getSelected() { return m_isSelected; }
-
-        virtual void draw(sf::RenderTarget &target, sf::RenderStates states) const override {
+        virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const override {
             target.draw(m_sprite, states);
             target.draw(m_text, states);
         }
@@ -137,15 +131,10 @@ private:
         bool m_isSelected;
     };
 
-    sf::Text inputText;
-    sf::Text outputText;
-public:
-    /*void setController(bool isTextOutput,const std::string& outputFile) {
-        controller.isTextOutput=isTextOutput;
-        controller.outputFile=outputFile;
-    }*/
+    //Controller controller;
 
-    //View(/*Controller controller*/)/*:controller(controller)*/ {}
+public:
+    View(/*Controller controller*/)/*:controller(controller)*/ {}
 
     void start() {
         sf::RenderWindow window(sf::VideoMode(1200, 800), "SFML Window");
@@ -161,37 +150,56 @@ public:
         }
         renderTexture.clear(sf::Color::White);*/
 
+        sf::Text inputText;
         inputText.setFont(font);
         inputText.setCharacterSize(24);
         inputText.setFillColor(sf::Color::Black);
-        inputText.setPosition(90, 90);
+        inputText.setPosition(70, 90);
 
+        sf::Text outputText;
         outputText.setFont(font);
         outputText.setCharacterSize(24);
         outputText.setFillColor(sf::Color::Black);
-        outputText.setPosition(90, 470);
+        outputText.setPosition(70, 470);
+
+        sf::Text outputFilesText;
+        outputFilesText.setFont(font);
+        outputFilesText.setCharacterSize(24);
+        outputFilesText.setFillColor(sf::Color::Black);
+        outputFilesText.setPosition(840, 480);
 
         sf::Text inText("Input", font);
         inText.setCharacterSize(30);
         inText.setFillColor(sf::Color::Black);
-        inText.setPosition(80, 30);
+        inText.setPosition(60, 40);
 
-        sf::Text outText("Out", font);
+        sf::Text outText("Output", font);
         outText.setCharacterSize(30);
         outText.setFillColor(sf::Color::Black);
-        outText.setPosition(80, 410);
+        outText.setPosition(60, 420);
+
+        sf::Text outFileText("Output files", font);
+        outFileText.setCharacterSize(30);
+        outFileText.setFillColor(sf::Color::Black);
+        outFileText.setPosition(865, 420);
 
         sf::RectangleShape inputArea(sf::Vector2f(700, 300));
-        inputArea.setPosition(80, 80);
+        inputArea.setPosition(60, 80);
         inputArea.setFillColor(sf::Color::Transparent);
         inputArea.setOutlineThickness(3);
         inputArea.setOutlineColor(sf::Color::Black);
 
         sf::RectangleShape outputArea(sf::Vector2f(700, 300));
-        outputArea.setPosition(80, 470);
+        outputArea.setPosition(60, 470);
         outputArea.setFillColor(sf::Color::Transparent);
         outputArea.setOutlineThickness(3);
         outputArea.setOutlineColor(sf::Color::Black);
+
+        sf::RectangleShape outfileArea(sf::Vector2f(300, 300));
+        outfileArea.setPosition(830, 470);
+        outfileArea.setFillColor(sf::Color::Transparent);
+        outfileArea.setOutlineThickness(3);
+        outfileArea.setOutlineColor(sf::Color::Black);
 
         //Button textInButton("Text", sf::Vector2f(480, 12), true, true, font);
         //Button fileInButton("Files", sf::Vector2f(580, 12), true, false, font);
@@ -199,48 +207,29 @@ public:
         Button textOutButton("Text", sf::Vector2f(480, 400), true, true, font);
         Button fileOutButton("Files", sf::Vector2f(580, 400), true, false, font);
 
-        Button browseButton("Browse", sf::Vector2f(850, 200), false, false, font);
-        Button startButton("Start", sf::Vector2f(850, 400), false, false, font);
+        Button browseButton("Browse", sf::Vector2f(830, 80), false, false, font);
+        Button startButton("Start", sf::Vector2f(830, 280), false, false, font);
 
-        std::string inputStr;
-        std::string showStr;
-        int size[10] = {};
-        int line = 0;
+        std::string inputStr = "";
+        std::string outputFilesStr = "";
+        
+        int writeArea = 0;
 
         while (window.isOpen()) {
-            sf::Event event{};
+            sf::Event event;
             while (window.pollEvent(event)) {
                 if (event.type == sf::Event::Closed) {
                     window.close();
                 } else if (event.type == sf::Event::KeyPressed) {  // Ctrl+V
                     if (event.key.code == sf::Keyboard::V && sf::Keyboard::isKeyPressed(sf::Keyboard::LControl)) {
                         std::string str = sf::Clipboard::getString().toAnsiString();
-                        for (char c: str) {
-                            if (c == '\n') {
-                                if (line >= 9) {
-                                    continue;
-                                }
-                                ++line;
-                                inputStr += '\n';
-                                showStr += '\n';
-                            } else {
-                                if (line > 9) {
-                                    continue;
-                                }
-                                if (size[line] >= 53) {
-                                    if (line >= 9) {
-                                        continue;
-                                    }
-                                    ++line;
-                                    showStr += '\n';
-                                }
-                                ++size[line];
-                                inputStr += c;
-                                showStr += c;
-                            }
+                        if (writeArea == 0) {
+                            inputStr += str;
+                            printText(inputStr, inputText, sf::Vector2f(700, 300));
+                        } else {
+                            outputFilesStr += str;
+                            printText(outputFilesStr, outputFilesText, sf::Vector2f(300, 300));
                         }
-                        inputText.setString(showStr);
-                        continue;
                     }
                 } else if (event.type == sf::Event::TextEntered) {
                     if (event.text.unicode < 128) {
@@ -248,41 +237,34 @@ public:
                             continue;
                         }
                         if (event.text.unicode == '\b') { // Backspace
-                            if (!inputStr.empty()) {
-                                if (showStr.back() == '\n') {
-                                    if (inputStr.back() != '\n') {
-                                        showStr.pop_back();
-                                    }
-                                    --line;
-                                } else {
-                                    --size[line];
+                            if (writeArea == 0) {
+                                if (!inputStr.empty()) {
+                                    inputStr.pop_back();
+                                    printText(inputStr, inputText, sf::Vector2f(700, 300));
                                 }
-                                showStr.pop_back();
-                                inputStr.pop_back();
+                            } else {
+                                if (!outputFilesStr.empty()) {
+                                    outputFilesStr.pop_back();
+                                    printText(outputFilesStr, outputFilesText, sf::Vector2f(300, 300));
+                                }
                             }
                         } else if (event.text.unicode == '\r') { // Enter
-                            if (line >= 9) {
-                                continue;
+                            if (writeArea == 0) {
+                                inputStr += '\n';
+                                printText(inputStr, inputText, sf::Vector2f(700, 300));
+                            } else {
+                                outputFilesStr += '\n';
+                                printText(outputFilesStr, outputFilesText, sf::Vector2f(300, 300));
                             }
-                            ++line;
-                            inputStr += '\n';
-                            showStr += '\n';
                         } else {
-                            if (line > 9) {
-                                continue;
+                            if (writeArea == 0) {
+                                inputStr += static_cast<char>(event.text.unicode);
+                                printText(inputStr, inputText, sf::Vector2f(700, 300));
+                            } else {
+                                outputFilesStr += static_cast<char>(event.text.unicode);
+                                printText(outputFilesStr, outputFilesText, sf::Vector2f(300, 300));
                             }
-                            if (size[line] >= 53) {
-                                if (line >= 9) {
-                                    continue;
-                                }
-                                ++line;
-                                showStr += '\n';
-                            }
-                            ++size[line];
-                            inputStr += static_cast<char>(event.text.unicode);
-                            showStr += static_cast<char>(event.text.unicode);
                         }
-                        inputText.setString(showStr);
                     }
                 } else if (event.type == sf::Event::MouseButtonPressed) { // Mouse
                     if (event.mouseButton.button == sf::Mouse::Left) {
@@ -304,44 +286,19 @@ public:
                             textOutButton.setSelected(false);
                             //controller.setOutput(false);
                         } else if (startButton.getGlobalBounds().contains(event.mouseButton.x, event.mouseButton.y)) {
-                            bool isTextOutput = textOutButton.getSelected();
-                            std::string outputFile="";
-                            if (!isTextOutput){
-                                
-                            }
-                            Controller controller{isTextOutput,outputFile};
-                            controller.start(inputStr);
-                            //outputText.setString(outputStr);
+                            //std::string outStr = controller.start(inputStr, outputFilesStr);
+                            //printText(outStr, outputText);
+                        }else if (inputArea.getGlobalBounds().contains(event.mouseButton.x, event.mouseButton.y)) {
+                            writeArea = 0;
+                        }else if (outfileArea.getGlobalBounds().contains(event.mouseButton.x, event.mouseButton.y)) {
+                            writeArea = 1;
                         }/* else if (browseButton.getGlobalBounds().contains(event.mouseButton.x, event.mouseButton.y)) {
                             std::vector<std::wstring> selectedFiles = selectFiles("");
-                            showStr.clear();
-                            inputStr.clear();
-                            line = 0;
-                            for (int i = 0; i < 10; i++) {
-                                size[i] = 0;
-                            }
                             for (std::wstring filepath : selectedFiles) {
-                                for (wchar_t wc : filepath) {
-                                    if (size[line] >= 53) {
-                                        showStr += '\n';
-                                        if (line >= 9) {
-                                            break;
-                                        }
-                                        line++;
-                                    }
-                                    showStr += static_cast<char>(wc);
-                                    inputStr += static_cast<char>(wc);
-                                    size[line]++;
-                                }
-                                if (line >= 9) {
-                                    break;
-                                } else {
-                                    showStr += '\n';
-                                    inputStr += '\n';
-                                    line++;
-                                }
+                                std::string str( filepath.begin(), filepath.end() );
+                                inputStr += str;
                             }
-                            inputText.setString(showStr);
+                            printText(inputStr, inputText, sf::Vector2f(700, 300));
                         }*/
                     }
                 }
@@ -350,8 +307,13 @@ public:
             window.clear(sf::Color::White);
             window.draw(inputArea);
             window.draw(outputArea);
+            window.draw(outfileArea);
+
             window.draw(inputText);
             window.draw(outputText);
+            window.draw(outputFilesText);
+
+            window.draw(outFileText);
             window.draw(inText);
             window.draw(outText);
             //window.draw(textInButton);
@@ -377,30 +339,33 @@ public:
         }
     }
 
-    void writeOutput(std::string str) {//TODO дописывать
+    void printText(const std::string& str, sf::Text& outputText, const sf::Vector2f& area) {
         int line = 0;
-        int size[10] = {};
+        int maxLine = static_cast<int>(area.y / 1.25 / 24);
+        int maxLen = static_cast<int>(area.x / 24 * 1.8);
+        std::cout << maxLine << " " << maxLen << "\n";
+        int size[maxLine] = {};
         std::string outStr = "";
-        for (char c: str) {
+        for (char c : str) {
             if (c == '\n') {
-                if (line >= 9) {
+                if (line >= maxLine-1) {
                     continue;
                 }
                 ++line;
                 outStr += '\n';
             } else {
-                if (line > 9) {
+                if (line > maxLine-1) {
                     continue;
                 }
-                if (size[line] >= 53) {
-                    if (line >= 9) {
-                        continue;
-                    }
-                    ++line;
-                    outStr += '\n';
+            if (size[line] >= maxLen) {
+                if (line >= maxLine-1) {
+                    continue;
                 }
-                ++size[line];
-                outStr += c;
+                ++line;
+                outStr += '\n';
+            }
+            ++size[line];
+            outStr += c;
             }
         }
         outputText.setString(outStr);

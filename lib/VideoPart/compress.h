@@ -16,4 +16,6 @@ std::vector<uchar> compressMat(const cv::Mat& image);
 
 void writeBufferToFile(const std::vector<cv::Vec3b>& buffer, const std::string& filename, int theshold);
 
+std::pair<cv::Vec3b, bool> areSolid(const cv::Mat& matrix, double threshold);
+
 #endif COMPRESS_H

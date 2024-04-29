@@ -1,7 +1,6 @@
 #include "decompress.h"
 #include <fstream>
 #include "codec.h"
-
 #include "logger.h"
 
 void fill(const cv::Vec3b& value, const cv::Size& size, std::vector<uchar>& data) {
@@ -12,7 +11,6 @@ void fill(const cv::Vec3b& value, const cv::Size& size, std::vector<uchar>& data
         data.push_back(value[1]);
         data.push_back(value[2]);
     }
-    
 }
 
 std::vector<uchar> decompressMat(const std::vector<uchar>& compressedData) {

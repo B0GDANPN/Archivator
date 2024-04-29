@@ -1,0 +1,24 @@
+Encoding...
+720 x 1280
+Frames from 0 to 23 Count of mats 11
+Size of buffer: 7762
+Frames from 23 to 39 Count of mats 11
+Size of buffer: 5400
+Frames from 39 to 56 Count of mats 12
+Size of buffer: 717
+Frames from 56 to 66 Count of mats 12
+Size of buffer: 421
+Frames from 66 to 78 Count of mats 12
+Size of buffer: 2025
+Frames from 78 to 89 Count of mats 12
+Size of buffer: 1856
+Frames from 89 to 103 Count of mats 13
+Size of buffer: 0
+Frames from 103 to 120 Count of mats 13
+Size of buffer: 0
+Frames from 120 to 145 Count of mats 13
+Size of buffer: 0
+Frames from 145 to 150 Count of mats 10
+Size of buffer: 0
+Time for encoding: 20711 ms
+Params: 16 3000000 500000

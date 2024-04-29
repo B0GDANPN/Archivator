@@ -6,6 +6,10 @@
 #include "decompress.h"
 #include "codec.h"
 
+int width = -1;
+int height = -1;
+size_t byte_size = -1;
+
 void testDecompressMat(bool needShow = false) {
     std::string filename = "testData/chad.jpg";
     cv::Mat image = cv::imread(filename);
@@ -16,6 +20,8 @@ void testDecompressMat(bool needShow = false) {
         return;
     }
 
+    width = image.rows;
+    height = image.cols;
     std::vector<uchar> encoded = compressMat(image);
     std::vector<uchar> decoded = decompressMat(encoded);
 
@@ -93,27 +99,40 @@ void testWriteBuffer() {
 
     std::vector<std::pair<cv::Point, cv::Mat>> pointsAndSubmatrices;
 
-    cv::Point point1(0, 0);
-    cv::Point point2(30, 30);
-    cv::Point point3(100, 90);
-    cv::Mat submatrix1 = image(cv::Rect(0, 0, 10, 15));
-    cv::Mat submatrix2 = image(cv::Rect(30, 30, 20, 45));
-    cv::Mat submatrix3 = image(cv::Rect(100, 90, 50, 5));
-
-    pointsAndSubmatrices.push_back(std::make_pair(point1, submatrix1));
-    pointsAndSubmatrices.push_back(std::make_pair(point2, submatrix2));
-    pointsAndSubmatrices.push_back(std::make_pair(point3, submatrix3));
-
     std::vector<cv::Vec3b> subFrameBuffer;
     writeNumbersExcludingSubmatrices(image, pointsAndSubmatrices, subFrameBuffer);
+    byte_size =  subFrameBuffer.size() * sizeof(subFrameBuffer[0]);
     writeBufferToFile(subFrameBuffer, "testData/", SUBFRAME_DIFFERENCE);
     logger << "Succesfully written buffer to file" << std::endl;
 }
 
 void testReadBufferFromFile() {
     logger << "Start decode buffer from file..." << std::endl;
-    decodeBufferFromFile("testData/0.bin");
-    logger << "Succesfully decode file from buffer" << std::endl;
+    std::vector<cv::Vec3b> decodedBuffer = decodeBufferFromFile("testData/0.bin");
+    if (decodedBuffer.size() * sizeof(decodedBuffer[0])) {
+        std::cout << "Buffer succesfully decoded!" << std::endl;
+    }
+    else {
+        std::cout << "Something went wrong during decoding buffer from file :c" << std::endl;
+    }
+}
+
+void testSimilar() {
+    std::string filename = "testData/white.jpg";
+    cv::Mat image = cv::imread(filename);
+
+    if (image.empty()) {
+        logger << "\tFailed to load image: " << filename << std::endl;
+        return;
+    }
+
+    std::pair<cv::Vec3b, bool> data = areSolid(image, 10);
+    if (data.second) {
+        std::cout << "Solid test succesfully passed!" << std::endl;
+    }
+    else {
+        std::cout << "Solid NE passed :C" << std::endl;
+    }
 }
 
 void diagnostic() {
@@ -123,5 +142,5 @@ void diagnostic() {
     testReadingMats();
     testWriteBuffer();
     testReadBufferFromFile();
-
+    testSimilar();
 }

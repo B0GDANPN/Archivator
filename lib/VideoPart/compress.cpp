@@ -164,31 +164,27 @@ void writeBufferToFile(const std::vector<cv::Vec3b>& buffer, const std::string& 
 
     std::ofstream outputFile(uniqueFilename, std::ios::binary);
     if (!outputFile.is_open()) {
-        logger << "Unable to open the file: " << uniqueFilename << std::endl;
+        std::cerr << "Невозможно открыть файл: " << uniqueFilename << std::endl;
         return;
     }
 
-    for (size_t i = 0; i < buffer.size(); ++i) {
+    size_t i = 0;
+    while (i < buffer.size()) {
         int count = 1;
         cv::Vec3b prev_pixel = buffer[i];
-        for (size_t j = i + 1; j < buffer.size(); ++j) {
-            if (isSimilar(prev_pixel, buffer[j], threshold) && count < 255) {
-                count++;
-            }
-            else {
-                outputFile.write(reinterpret_cast<const char*>(&count), sizeof(unsigned char));
-                outputFile.write(reinterpret_cast<const char*>(&prev_pixel), sizeof(cv::Vec3b));
-                i = j - 1;
-                break;
-            }
+        size_t j = i + 1;
+        while (j < buffer.size() && isSimilar(prev_pixel, buffer[j], threshold) && count < 255) {
+            count++;
+            j++;
         }
-        if (i == buffer.size() - 1) {
-            count = 1;
-            outputFile.write(reinterpret_cast<const char*>(&count), sizeof(unsigned char));
-            outputFile.write(reinterpret_cast<const char*>(&prev_pixel), sizeof(cv::Vec3b));
-        }
+
+        outputFile.write(reinterpret_cast<const char*>(&count), sizeof(unsigned char));
+        outputFile.write(reinterpret_cast<const char*>(&prev_pixel), sizeof(cv::Vec3b));
+
+        i = j;
     }
 }
+
 
 void insertMatrix(cv::Mat& bigMatrix, const cv::Mat& smallMatrix, cv::Point position) {
     if (position.x < 0 || position.y < 0 ||

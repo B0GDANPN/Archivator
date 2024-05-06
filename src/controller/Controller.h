@@ -27,8 +27,8 @@ namespace fs = std::filesystem;
 // или текстовый файл с такими строками
 class Controller : public IController {
 public:
-    explicit Controller(bool isTextOutput, const std::string &outputFile,std::ostringstream& ref_oss)
-            : IController(isTextOutput, outputFile,ref_oss) {}
+    explicit Controller(bool isTextOutput, const std::string &outputFile, std::ostringstream &ref_oss)
+            : IController(isTextOutput, outputFile, ref_oss) {}
 
     //Controller() : IController(true, "") {}
 
@@ -68,10 +68,11 @@ public:
             //bool isTextOutput = true;
             //std::string outputFile;
             fs::current_path(toSaveEncodedPath);
+            std::string debug_str=oss.str();
             switch (algo) {
                 case AlgorithmEnum::QUANTIZATION:
                     try {
-                        QuantizationAlgo quantizationAlgo{isTextOutput, outputFile,oss};
+                        QuantizationAlgo quantizationAlgo{isTextOutput, outputFile, oss};
                         std::string videoName = arg.files_[0];
                         size_t pos = videoName.rfind(".mp4");
                         fs::path dirName = videoName.substr(0, pos);
@@ -92,8 +93,8 @@ public:
                 case AlgorithmEnum::FRACTAL:
                     try {
 
-                        FractalAlgo fractalAlgo{isTextOutput, outputFile,oss};
-                        std::string argName=arg.files_[0];
+                        FractalAlgo fractalAlgo{isTextOutput, outputFile, oss};
+                        std::string argName = arg.files_[0];
                         if (arg.action_) {//encode
                             int quality = stoi(arg.options_[0]);
                             fractalAlgo.encode(argName, quality);
@@ -108,8 +109,8 @@ public:
                     break;
                 case AlgorithmEnum::FLAC:
                     try {
-                        FlacAlgo flacAlgo{isTextOutput, outputFile,oss};
-                        std::string argName=arg.files_[0];
+                        FlacAlgo flacAlgo{isTextOutput, outputFile, oss};
+                        std::string argName = arg.files_[0];
                         if (arg.action_) {//encode
                             flacAlgo.encode(argName);
                         } else {//decode

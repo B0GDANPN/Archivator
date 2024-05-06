@@ -69,7 +69,7 @@ public:
     }
 
     void Load() {
-        std::string fullName = (this->fileName + '.' + this->extension);
+        std::string fullName ="../"+ (this->fileName + '.' + this->extension);
         std::string curDir=std::filesystem::current_path();
         unsigned char *original_data = stbi_load(fullName.c_str(), &width, &height, &channels, 0);
         if (!original_data) {

@@ -11,13 +11,11 @@ int main() {
     std::ostringstream &ref_oss = oss;
     Controller controller{true, "", ref_oss};
 
-    std::vector<std::string> argv = {"enc -o 500 -f Lena.bmp Lena_encoded.json",
-                                     "enc -o 500 -f Lena.bmp",
+    std::vector<std::string> argv = {"enc -o 500 -f Lena.bmp",
                                      "end",
                                      "gfdgffgf",
                                      "", "-o",
-                                     "dec -o 5 -f Lena_encoded.json",
-                                     "dec -o 5 -f Lena_encoded.json Lena.bmp",
+                                     "dec -o 5 -f Lena.bmp",
                                      "testTxt1.txt",
                                      "testTxt2.txt"};
     std::stringstream ss;
@@ -28,4 +26,8 @@ int main() {
     }
     std::string str = ss.str();
     controller.start(str);
+    std::string real=controller.oss.str();
+    std::cout<<real;
+
 }
+

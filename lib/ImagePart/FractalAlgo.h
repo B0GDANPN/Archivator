@@ -24,8 +24,8 @@ namespace fs = std::filesystem;
 
 class FractalAlgo : public IController {
 public:
-    explicit FractalAlgo(bool isTextOutput, const std::string &outputFile,std::ostringstream& ref_oss)
-            : IController(isTextOutput, outputFile,ref_oss) {}
+    explicit FractalAlgo(bool isTextOutput, const std::string &outputFile, std::ostringstream &ref_oss)
+            : IController(isTextOutput, outputFile, ref_oss) {}
 
     void sendCommonInformation(const CommonInformation &commonInformation) override {
         sendMessage("FractalAlgo{ ");
@@ -54,15 +54,17 @@ public:
     }
 
     void encode(const std::string &fileName, int quality) {
+        sendMessage("\nEncoding:\n");
+        std::string debug_str=oss.str();
         size_t lastSlashPos = fileName.find_last_of('/');
         std::string tmp = lastSlashPos != std::string::npos ? fileName.substr(lastSlashPos + 1) : fileName;
 
 
         size_t pos = tmp.rfind('.');
         std::string outputFileName = tmp.substr(0, pos) + ".json";
-        auto *source = new Image(isTextOutput, outputFile,oss);
+        auto *source = new Image(isTextOutput, outputFile, oss);
         source->ImageSetup(fileName);
-        auto *enc = new QuadTreeEncoder(isTextOutput, outputFile,oss, quality);
+        auto *enc = new QuadTreeEncoder(isTextOutput, outputFile, oss, quality);
         source->Load();
 
         int width = source->width;
@@ -79,14 +81,18 @@ public:
         CommonInformation information = {static_cast<int>(ratio),
                                          static_cast<int>(duration.count()),
                                          width * height * 3, transforms->getSize()};
+        debug_str=oss.str();
         sendCommonInformation(information);
+        debug_str=oss.str();
         sendEncodedInformation(width, height, numTransforms);
+        debug_str=oss.str();
         delete transforms;
         delete enc;
         delete source;
     };
 
     void decode(const std::string &imageName, int phases) {
+        sendMessage("\nDecoding:\n");
         size_t pos = imageName.rfind('.');
         std::string fileName = imageName.substr(0, pos) + ".json";
         int width, height;
@@ -94,7 +100,7 @@ public:
         Transforms *transforms2;
         std::tie(transforms2, extension) = LoadTransformsFromJson(fileName, &width, &height);
         auto start = std::chrono::high_resolution_clock::now();
-        auto *dec = new Decoder(width, height, transforms2->channels, isTextOutput, outputFile,oss);
+        auto *dec = new Decoder(width, height, transforms2->channels, isTextOutput, outputFile, oss);
         auto finish = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(finish - start);
 

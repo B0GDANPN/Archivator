@@ -43,8 +43,8 @@ public:
             "Time: " << commonInformation.time << "ms \n" <<
             "Size input data: " << commonInformation.sizeInputData << " bytes\n" <<
             "Size output data: " << commonInformation.sizeOutputData << " bytes\n";
-        std::string tmp = oss.str();
-        sendMessage(tmp);
+        //std::string tmp = oss.str();
+        //sendMessage(tmp);
     };
 
     virtual void sendErrorInformation(const std::string &error) {

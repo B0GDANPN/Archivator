@@ -32,8 +32,8 @@ namespace fs = std::filesystem;
 
 class QuantizationAlgo : public IController {
 public:
-    explicit QuantizationAlgo(bool isTextOutput, const std::string &outputFile,std::ostringstream& shared_oss)
-            : IController(isTextOutput, outputFile,shared_oss) {}
+    explicit QuantizationAlgo(bool isTextOutput, const std::string &outputFile, std::ostringstream &shared_oss)
+            : IController(isTextOutput, outputFile, shared_oss) {}
 
     void sendCommonInformation(const CommonInformation &commonInformation) override {
         sendMessage("QuantizationAlgo{ ");

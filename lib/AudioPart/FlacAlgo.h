@@ -22,8 +22,8 @@
 #include <sstream>
 
 static constexpr int globalSizeBlocks = 16384 * 8; // Size of blocks (INT32_MAX for 1 block)
-static constexpr int globalOrder = 10;            // LPC model globalOrder
-static constexpr int globalK = 5;                // Rice code parameter
+static constexpr int globalOrder = 25;            // LPC model globalOrder
+static constexpr int globalK = 8;                // Rice code parameter
 struct Information {
     double compression;
     std::chrono::milliseconds time;
@@ -31,7 +31,6 @@ struct Information {
 };
 
 // Linear predictive coding
-
 class LPC {
 public:
     std::vector<double> coeffs; // Coefficients LPC

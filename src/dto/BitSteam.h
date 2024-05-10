@@ -27,10 +27,24 @@ struct BitStream {
         bitIndex++;
     }
 
+    void addByte(unsigned char byte) {
+        for (int i = 7; i >= 0; i--){
+            this->addBit((byte >> i) & 1);
+        }
+    }
+
     bool getBit() {
         bool bit = (data[bitIndex / 8] >> (7 - bitIndex % 8)) & 1;
         bitIndex++;
         return bit;
+    }
+
+    unsigned char getByte() {
+        unsigned char byte = 0;
+        for (int i = 0; i < 8; i++){
+            byte = (byte << 1) | this->getBit();
+        }
+        return byte;
     }
 };
 

@@ -1,4 +1,3 @@
-#include <csignal>
 #include "../../src/controller/Controller.h"
 
 int main() {
@@ -14,6 +13,7 @@ int main() {
     std::string sourceImage1 = "Lena.bmp";
     std::string sourceImage2 = "Pingvin.jpeg";
     std::string sourceImage3 = "sample.tga";
+    currentPath = fs::current_path();
     fractalAlgo.encode(sourceImage1, 500);
     fractalAlgo.decode(sourceImage1, 5);
     fractalAlgo.encode(sourceImage2, 900);

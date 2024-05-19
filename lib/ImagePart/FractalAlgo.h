@@ -107,7 +107,8 @@ public:
         for (int phase = 1; phase <= phases; phase++) {
             dec->Decode(transforms2);
         }
-        fs::path outputImagePath = /*"../storageDecoded/" +*/ imageName;// путь сохранения
+        //fs::path outputImagePath = "../storageDecoded/" + imageName;
+        fs::path outputImagePath = /*"../storageDecoded/" +*/ imageName;// путь сохранения для теста картинок
         Image *producer = dec->GetNewImage(outputImagePath, 0);
         producer->Save();
         int ratio = width * height * producer->channels / transforms2->getSize();

@@ -33,10 +33,6 @@ public:
     //Controller() : IController(true, "") {}
 
     void start(const std::string &str) {
-        std::istringstream iss(str);
-        std::vector<std::string> argv;
-        std::string line;
-        while (std::getline(iss, line, '\n')) argv.push_back(line);
         fs::path dir = "storageEncoded";
         if (!fs::exists(dir))
             fs::create_directory(dir);
@@ -46,22 +42,9 @@ public:
         fs::path currentPath = fs::current_path();
         fs::path toSaveEncodedPath = currentPath / "storageEncoded";
         fs::path toSaveDecodedPath = currentPath / "storageDecoded";
-        std::vector<std::string> tokens;
-        std::string token;
-        std::vector<std::string> argsToParse;
-        for (const auto &line: argv) {
-            if (fs::exists(line)) {
-                if (fs::path(line).extension() == ".txt") {
-                    std::vector<std::string> tmp = Parser::getArgFromTxt(line);
-                    argsToParse.insert(argsToParse.end(), tmp.begin(), tmp.end());
-                } else {
-                    argsToParse.emplace_back(line);
-                }
-            } else {
-                argsToParse.emplace_back(line);
-            }
-        }
-        std::vector<Dto> args = Parser::parse(argsToParse);
+
+
+        std::vector<Dto> args = Parser::parse(str);
         for (const auto &arg: args) {
             if (arg.files_.empty()) continue;
             AlgorithmEnum algo = Selector::getAlgorithmFromDto(arg);

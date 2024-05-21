@@ -1,5 +1,5 @@
-#ifndef QTE_H
-#define QTE_H
+#ifndef ARCHIVATOR_QTE_H
+#define ARCHIVATOR_QTE_H
 
 #include <vector>
 #include "Image.h"
@@ -126,4 +126,4 @@ private:
 
 };
 
-#endif QTE_H
+#endif ARCHIVATOR_QTE_H

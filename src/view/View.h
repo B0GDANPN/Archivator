@@ -1,11 +1,10 @@
-#ifndef MYARCH_VIEW_H
-#define MYARCH_VIEW_H
+#ifndef ARCHIVATOR_VIEW_H
+#define ARCHIVATOR_VIEW_H
 #pragma once
 
 #include <iostream>
 #include <string>
 #include <vector>
-//#include <shobjidl.h>
 #include <SFML/Graphics.hpp>
 
 
@@ -82,9 +81,10 @@ private:
         return selectedFiles;
     }*/
 
-    class Button: public sf::Drawable, public sf::Transformable {
+    class Button : public sf::Drawable, public sf::Transformable {
     public:
-        Button(const std::string& text, const sf::Vector2f& position, bool a, bool selected, sf::Font& font): m_text(text, font) {
+        Button(const std::string &text, const sf::Vector2f &position, bool a, bool selected, sf::Font &font) : m_text(
+                text, font) {
             m_sprite.setFillColor(sf::Color::White);
             m_sprite.setOutlineThickness(2);
             m_sprite.setOutlineColor(sf::Color::Black);
@@ -95,7 +95,7 @@ private:
             } else {
                 m_sprite.setSize(sf::Vector2f(300, 100));
                 m_text.setCharacterSize(64);
-                m_text.setPosition(position + sf::Vector2f(250 - 35 * text.size(), 10));
+                m_text.setPosition(position + sf::Vector2f(static_cast<float >(250 - 35 * text.size()), 10));
             }
             m_sprite.setPosition(position);
 
@@ -116,7 +116,7 @@ private:
             }
         }
 
-        virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const override {
+        void draw(sf::RenderTarget &target, sf::RenderStates states) const override {
             target.draw(m_sprite, states);
             target.draw(m_text, states);
         }
@@ -132,9 +132,9 @@ private:
     };
 
 public:
-    View() {}
+    View() = default;
 
-    void start() {
+    static void start() {
         sf::RenderWindow window(sf::VideoMode(1200, 800), "SFML Window");
 
         sf::Font font;
@@ -244,16 +244,16 @@ public:
         Button browseButton("Browse", sf::Vector2f(830, 80), false, false, font);
         Button startButton("Start", sf::Vector2f(830, 280), false, false, font);
 
-        std::string inputStr = "";
-        std::string outputFilesStr = "";
-        std::string outStr = "";
-        
+        std::string inputStr;
+        std::string outputFilesStr;
+        std::string outStr;
+
         int writeArea = 0;
         int shift1 = 0;
         int shift2 = 0;
 
         while (window.isOpen()) {
-            sf::Event event;
+            sf::Event event{};
             while (window.pollEvent(event)) {
                 if (event.type == sf::Event::Closed) {
                     window.close();
@@ -305,36 +305,55 @@ public:
                     }
                 } else if (event.type == sf::Event::MouseButtonPressed) { // Mouse
                     if (event.mouseButton.button == sf::Mouse::Left) {
-                        if (textOutButton.getGlobalBounds().contains(event.mouseButton.x, event.mouseButton.y)) {
+                        if (textOutButton.getGlobalBounds().contains(static_cast<float >(event.mouseButton.x),
+                                                                     static_cast<float >(event.mouseButton.y))) {
                             textOutButton.setSelected(true);
                             fileOutButton.setSelected(false);
-                        } else if (fileOutButton.getGlobalBounds().contains(event.mouseButton.x, event.mouseButton.y)) {
+                        } else if (fileOutButton.getGlobalBounds().contains(static_cast<float >(event.mouseButton.x),
+                                                                            static_cast<float >(event.mouseButton.y))) {
                             fileOutButton.setSelected(true);
                             textOutButton.setSelected(false);
-                        } else if (startButton.getGlobalBounds().contains(event.mouseButton.x, event.mouseButton.y)) {
-                            //outStr = controller.start(inputStr, outputFilesStr);
-                            //printText(outStr, outputText);
-                        } else if (sf::FloatRect(710, 80, 40, 40).contains(event.mouseButton.x, event.mouseButton.y)) {
+                        } else if (startButton.getGlobalBounds().contains(static_cast<float >(event.mouseButton.x),
+                                                                          static_cast<float >(event.mouseButton.y))) {
+                            bool isTextOutput = textOutButton.isPressed();
+                            std::string outputFile;
+                            if (!isTextOutput) {
+                                outputFile = outputFilesStr;
+                            }
+                            std::ostringstream oss;
+                            std::ostringstream &ref_oss = oss;
+                            Controller controller{textOutButton.isPressed(), outputFile, ref_oss};
+                            controller.start(inputStr);
+                            std::string outStr = oss.str();
+                            printText(outStr, outputText, sf::Vector2f(700, 300));
+                        } else if (sf::FloatRect(710, 80, 40, 40).contains(static_cast<float >(event.mouseButton.x),
+                                                                           static_cast<float >(event.mouseButton.y))) {
                             if (shift1 != 0) {
                                 --shift1;
                                 printText(inputStr, inputText, sf::Vector2f(660, 300), shift1);
                             }
-                        } else if (sf::FloatRect(710, 340, 40, 40).contains(event.mouseButton.x, event.mouseButton.y)) {
+                        } else if (sf::FloatRect(710, 340, 40, 40).contains(static_cast<float >(event.mouseButton.x),
+                                                                            static_cast<float >( event.mouseButton.y))) {
                             ++shift1;
                             printText(inputStr, inputText, sf::Vector2f(660, 300), shift1);
-                        } else if (sf::FloatRect(710, 480, 40, 40).contains(event.mouseButton.x, event.mouseButton.y)) {
+                        } else if (sf::FloatRect(710, 480, 40, 40).contains(static_cast<float >(event.mouseButton.x),
+                                                                            static_cast<float >(event.mouseButton.y))) {
                             if (shift2 != 0) {
                                 --shift2;
                                 printText(outStr, outputText, sf::Vector2f(660, 300), shift2);
                             }
-                        } else if (sf::FloatRect(710, 740, 40, 40).contains(event.mouseButton.x, event.mouseButton.y)) {
+                        } else if (sf::FloatRect(710, 740, 40, 40).contains(static_cast<float >(event.mouseButton.x),
+                                                                            static_cast<float >(event.mouseButton.y))) {
                             ++shift2;
                             printText(outStr, outputText, sf::Vector2f(700, 300), shift2);
-                        } else if (inputArea.getGlobalBounds().contains(event.mouseButton.x, event.mouseButton.y)) {
+                        } else if (inputArea.getGlobalBounds().contains(static_cast<float >(event.mouseButton.x),
+                                                                        static_cast<float >(event.mouseButton.y))) {
                             writeArea = 0;
-                        } else if (outfileArea.getGlobalBounds().contains(event.mouseButton.x, event.mouseButton.y)) {
+                        } else if (outfileArea.getGlobalBounds().contains(static_cast<float >(event.mouseButton.x),
+                                                                          static_cast<float >( event.mouseButton.y))) {
                             writeArea = 1;
-                        } else if (browseButton.getGlobalBounds().contains(event.mouseButton.x, event.mouseButton.y)) {
+                        } else if (browseButton.getGlobalBounds().contains(static_cast<float >(event.mouseButton.x),
+                                                                           static_cast<float >(event.mouseButton.y))) {
                             /*std::vector<std::wstring> selectedFiles = selectFiles("");
                             for (std::wstring filepath : selectedFiles) {
                                 std::string str( filepath.begin(), filepath.end() );
@@ -375,22 +394,22 @@ public:
         }
     }
 
-    void printText(const std::string& str, sf::Text& outputText, const sf::Vector2f& area, int shift = 0) {
+    static void printText(const std::string &str, sf::Text &outputText, const sf::Vector2f &area, int shift = 0) {
         int line = 0;
         int maxLine = static_cast<int>(area.y / 1.25 / 24) + shift;
         int maxLen = static_cast<int>(area.x / 24 * 1.75);
         std::vector<int> size(maxLine, 0);
-        std::string outStr = "";
-        for (char c : str) {
+        std::string outStr;
+        for (char c: str) {
             if (c == '\n') {
-                if (++line > shift){
+                if (++line > shift) {
                     if (line < maxLine) {
                         outStr += '\n';
                     }
                 }
             } else {
                 if (line >= shift) {
-                    if (line > maxLine-1) {
+                    if (line > maxLine - 1) {
                         continue;
                     }
                     if (size[line] >= maxLen) {
@@ -412,4 +431,4 @@ public:
     }
 };
 
-#endif MYARCH_VIEW_H
+#endif ARCHIVATOR_VIEW_H

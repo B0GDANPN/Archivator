@@ -6,6 +6,6 @@
 #define ARCHIVATOR_COMMONINFORMATION_H
 #pragma once
 struct CommonInformation {
-    int compressionRatio, time, sizeInputData, sizeOutputData;
+    double compressionRatio, time, sizeInputData, sizeOutputData;
 };
 #endif ARCHIVATOR_COMMONINFORMATION_H

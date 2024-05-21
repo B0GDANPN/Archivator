@@ -1,5 +1,5 @@
-#ifndef DEC_H
-#define DEC_H
+#ifndef ARCHIVATOR_DECODER_H
+#define ARCHIVATOR_DECODER_H
 
 #pragma once
 
@@ -81,6 +81,6 @@ private:
     Image img{isTextOutput, outputFile, ref_oss};
 };
 
-#endif DEC_H
+#endif ARCHIVATOR_DECODER_H
 
 

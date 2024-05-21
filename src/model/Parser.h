@@ -65,26 +65,6 @@ public:
         return result;
     };
 
-private:
-    static bool isDirectory(const std::string &line) {
-        bool isDir = std::filesystem::is_directory(line);
-        return isDir;
-    };
-
-    static bool isExist(const std::string &line) {
-        bool exist = std::filesystem::exists(line);
-        return exist;
-    };
 };
-/*
- *  строки ->Parser
- *  для каждой строки выбирает алгоритм парсинга и флаги
- *  возвращает в main массив структур {имя, алгоритм, флаги}
- *
- *
- *
- *
- *
- * */
 
 #endif ARCHIVATOR_PARSER_H

@@ -26,7 +26,7 @@ private:
         } else if (extension == ".flac" || extension == ".wav") {
             return AlgorithmEnum::FLAC;
         }
-        return AlgorithmEnum::ERROR;//mp4
+        return AlgorithmEnum::HUFFMAN;
     };
 };
 

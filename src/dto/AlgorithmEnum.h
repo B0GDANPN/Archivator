@@ -9,6 +9,6 @@ enum class AlgorithmEnum {
     QUANTIZATION,
     FRACTAL,
     FLAC,
-    ERROR
+    HUFFMAN
 };
 #endif ARCHIVATOR_ALGORITHMENUM_H

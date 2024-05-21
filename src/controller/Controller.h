@@ -19,6 +19,7 @@
 #include "../../lib/ImagePart/FractalAlgo.h"
 #include "../../lib/VideoPart/QuantizationAlgo.h"
 #include "../../lib/AudioPart/FlacAlgo.h"
+#include "../../lib/Huffman/HuffmanAlgo.h"
 
 #pragma once
 namespace fs = std::filesystem;
@@ -29,8 +30,6 @@ class Controller : public IController {
 public:
     explicit Controller(bool isTextOutput, const std::string &outputFile, std::ostringstream &ref_oss)
             : IController(isTextOutput, outputFile, ref_oss) {}
-
-    //Controller() : IController(true, "") {}
 
     void start(const std::string &str) {
         std::istringstream iss(str);
@@ -62,20 +61,23 @@ public:
             }
         }
         std::vector<Dto> args = Parser::parse(argsToParse);
+        fs::current_path(toSaveEncodedPath);
         for (const auto &arg: args) {
             if (arg.files_.empty()) continue;
             AlgorithmEnum algo = Selector::getAlgorithmFromDto(arg);
-            //bool isTextOutput = true;
-            //std::string outputFile;
-            fs::current_path(toSaveEncodedPath);
-            std::string debug_str=oss.str();
+            //std::string debug_str = oss.str();
             switch (algo) {
                 case AlgorithmEnum::QUANTIZATION:
                     try {
                         QuantizationAlgo quantizationAlgo{isTextOutput, outputFile, oss};
                         std::string videoName = arg.files_[0];
-                        size_t pos = videoName.rfind(".mp4");
-                        fs::path dirName = videoName.substr(0, pos);
+                        size_t lastSlashPos = videoName.find_last_of('/');
+                        std::string dirName =
+                                lastSlashPos != std::string::npos ? videoName.substr(lastSlashPos + 1) : videoName;
+                        size_t pos = dirName.rfind(".mp4");
+                        dirName = dirName.substr(0, pos);
+                        fs::create_directory(dirName);
+                        fs::current_path(dirName);
                         if (arg.action_) {//encode
                             fs::create_directory(dirName);
                             fs::current_path(dirName);
@@ -121,9 +123,15 @@ public:
                         sendErrorInformation("Error, need correct options: " + toStr(arg) + '\n');
                     }
                     break;
-                case AlgorithmEnum::ERROR:
+                case AlgorithmEnum::HUFFMAN:
                     try {
-                        sendErrorInformation("Error, non support exctension of" + arg.files_[0] + '\n');
+                        HuffmanAlgo huffmanAlgo{isTextOutput, outputFile, oss};
+                        std::string argName = arg.files_[0];
+                        if (arg.action_) {//encode
+                            huffmanAlgo.encode(argName);
+                        } else {//decode
+                            huffmanAlgo.decode(argName);
+                        }
                     }
                     catch (std::exception) {
                         sendErrorInformation("Error, need correct options: " + toStr(arg) + '\n');
@@ -131,9 +139,10 @@ public:
                     break;
             }
         }
+        std::string debug_str = oss.str();
+        int hhh=5;
     };
 
 };
-
 
 #endif ARCHIVATOR_CONTROLLER_H

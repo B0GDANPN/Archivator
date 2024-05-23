@@ -177,9 +177,9 @@ public:
             dec->Decode(transforms2);
         }
         fs::path outputFilename = "storageDecoded/" + tmpInputFilename + '.' + extension;// путь сохранения
-        Image *producer = dec->GetNewImage(outputFilename, 0);
+        Image *producer = dec->GetNewImage(outputFilename.string(), 0);
         producer->Save();
-        int sizeOutput = static_cast<int>(getFilesize(outputFilename));
+        int sizeOutput = static_cast<int>(getFilesize(outputFilename.string()));
         double ratio = static_cast<double>(sizeOutput) / sizeInput;
         auto finish = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(finish - start);

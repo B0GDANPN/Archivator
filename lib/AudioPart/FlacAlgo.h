@@ -353,7 +353,7 @@ public:
             sendErrorInformation("Failed to read FLAC file.\n");
             exit(-1);
         }
-        int sizeOutput = static_cast<int>(getFilesize(outputFilename));
+        int sizeOutput = static_cast<int>(getFilesize(outputFilename.string()));
         double ratio = static_cast<double>(sizeOutput) / sizeInput;
         std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);

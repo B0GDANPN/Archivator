@@ -11,6 +11,11 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -w")
 find_package(OpenCV REQUIRED)
 include_directories(../src/controller)
 include_directories(${OpenCV_INCLUDE_DIRS})
+
+find_package(SFML COMPONENTS audio graphics window system REQUIRED)
+include_directories(${SFML_INCLUDE_DIR})
+
+
 add_executable(MyExec
   ../src/main.cpp
 )

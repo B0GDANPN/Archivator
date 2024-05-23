@@ -433,7 +433,7 @@ public:
         sendMessage(std::to_string(rows) + ' ' + std::to_string(cols) + '\n');
         cv::Mat main(rows, cols, CV_8UC3, cv::Scalar(0, 0, 255));
 
-        cv::VideoWriter videoWriter(outputPath, cv::VideoWriter::fourcc('H', '2', '5', '6'), 30, cv::Size(cols, rows));
+        cv::VideoWriter videoWriter(outputPath.string(), cv::VideoWriter::fourcc('H', '2', '5', '6'), 30, cv::Size(cols, rows));
         if (!videoWriter.isOpened()) {
             sendErrorInformation("Unable to open the VideoWriter\n");
             return;
@@ -484,7 +484,7 @@ public:
                 exit(4);
             }
         }
-        int sizeOutput = static_cast<int>(getFilesize(outputPath));
+        int sizeOutput = static_cast<int>(getFilesize(outputPath.string()));
         double ratio = static_cast<double>(sizeOutput) / sizeInput;
         auto finish = std::chrono::high_resolution_clock::now();
         auto duration = static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count());

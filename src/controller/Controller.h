@@ -30,6 +30,10 @@ public:
             : IController(isTextOutput, outputFile, ref_oss) {}
 
     void start(const std::string &str) {
+        std::istringstream iss(str);
+        std::vector<std::string> argv;
+        std::string line;
+        while (std::getline(iss, line, '\n')) argv.push_back(line);
         fs::path dir = "storageEncoded";
         if (!fs::exists(dir))
             fs::create_directory(dir);

@@ -8,37 +8,16 @@
 #include <filesystem>
 #include <fstream>
 
-namespace fs = std::filesystem;
-
 // порядок аргументов enc/dec -o opt1 .. optN -f file1 .. fileM
 // или текстовый файл с такими строками
 class Parser {
 public:
-    static std::vector<Dto> parse(const std::string &str) {
-        std::istringstream iss(str);
-        std::vector<std::string> argv;
-        std::string line;
-        while (std::getline(iss, line, '\n')) argv.push_back(line);
-        std::vector<std::string> argsToParse;
-        for (const auto &line: argv) {
-            if (fs::exists(line)) {
-                if (fs::path(line).extension() == ".txt") {
-                    std::vector<std::string> tmp = Parser::getArgFromTxt(line);
-                    argsToParse.insert(argsToParse.end(), tmp.begin(), tmp.end());
-                } else {
-                    argsToParse.emplace_back(line);
-                }
-            } else {
-                argsToParse.emplace_back(line);
-            }
-        }
-
-
-        iss.clear();
+    static std::vector<Dto> parse(const std::vector<std::string> &lines) {
+        std::istringstream iss;
         std::vector<Dto> result;
         std::vector<std::string> tokens;
         std::string token;
-        for (const auto &line: argsToParse) {
+        for (const auto &line: lines) {
             iss.clear();
             iss.str(line);
             while (iss >> token) {
@@ -68,8 +47,7 @@ public:
                     }
                 }
             }
-            if (!files.empty())
-                result.emplace_back(action, options, files);
+            result.emplace_back(action, options, files);
             tokens.clear();
         }
         return result;

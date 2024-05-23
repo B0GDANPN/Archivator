@@ -31,7 +31,8 @@
 *.out
 *.app
 
-#build 
+#build
+cmake-build-debug
 build/*
 !build/CMakeLists.txt
 src/view/SFML-2.6.1

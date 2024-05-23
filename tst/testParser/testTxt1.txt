@@ -1,0 +1,4 @@
+dec -f ggfg.g
+dec -f
+enc -o
+trash

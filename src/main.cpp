@@ -1,11 +1,6 @@
-//
-// Created by bogdan on 11.03.24.
-//
 #include "controller/Controller.h"
 #include "view/View.h"
 #include <vector>
-#include <SFML/Graphics.hpp>
-
 #pragma once
 
 int main() {

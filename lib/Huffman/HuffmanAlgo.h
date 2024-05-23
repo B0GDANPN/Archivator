@@ -36,16 +36,6 @@ private:
             return a->freq > b->freq;
         }
 
-        ~HuffmanNode() {
-            deleteNode(this);
-        }
-
-        void deleteNode(HuffmanNode *node) {
-            if (node->left) deleteNode(node->left);
-            if (node->right) deleteNode(node->right);
-            delete node;
-
-        }
     };
 
     void sendCommonInformation(const CommonInformation &commonInformation) override {
@@ -99,13 +89,13 @@ public:
 
     void encode(const std::string &inputFilename) {
         auto start = std::chrono::high_resolution_clock::now();
-        int sizeInput = static_cast<int>(getFilesize("../" + inputFilename));
+        int sizeInput = static_cast<int>(getFilesize(inputFilename));
         size_t lastSlashPos = inputFilename.find_last_of('/');
         std::string tmpInputFilename =
                 lastSlashPos != std::string::npos ? inputFilename.substr(lastSlashPos + 1) : inputFilename;
-        std::string outputFilename = tmpInputFilename + ".hcf";// путь сохранения
+        std::string outputFilename ="storageEncoded/"+ tmpInputFilename + ".hcf";// путь сохранения
 
-        std::ifstream inputFile("../" + inputFilename, std::ios::binary);
+        std::ifstream inputFile(inputFilename, std::ios::binary);
         std::string text((std::istreambuf_iterator<char>(inputFile)), (std::istreambuf_iterator<char>()));
         inputFile.close();
 
@@ -171,9 +161,13 @@ public:
 
     void decode(const std::string &inputFilename) {
         auto start = std::chrono::high_resolution_clock::now();
-        int sizeInput = static_cast<int>(getFilesize("../" + inputFilename));
-        size_t pos = inputFilename.rfind(".hcf");
-        std::string outputFilename = "../storageDecoded/" + inputFilename.substr(0, pos);
+        int sizeInput = static_cast<int>(getFilesize(inputFilename));
+        size_t lastSlashPos = inputFilename.find_last_of('/');
+        std::string tmpInputFilename =
+                lastSlashPos != std::string::npos ? inputFilename.substr(lastSlashPos + 1) : inputFilename;
+        size_t pos = tmpInputFilename.rfind(".hcf");
+        std::string outputFilename = "storageDecoded/"+ tmpInputFilename.substr(0, pos);// путь сохранения
+
         std::ofstream outFile(outputFilename, std::ios::binary);
 
         std::ifstream inputFile(inputFilename, std::ios::binary);

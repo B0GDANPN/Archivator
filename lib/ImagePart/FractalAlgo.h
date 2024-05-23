@@ -122,7 +122,7 @@ public:
 
 
     void encode(const std::string &inputFilename, int quality) {
-        int sizeInput = static_cast<int>(getFilesize("../" + inputFilename));
+        int sizeInput = static_cast<int>(getFilesize(inputFilename));
         auto start = std::chrono::high_resolution_clock::now();
         sendMessage("\nEncoding:\n");
         size_t lastSlashPos = inputFilename.find_last_of('/');
@@ -131,9 +131,9 @@ public:
 
 
         size_t pos = tmpInputFilename.rfind('.');
-        std::string outputFilename = tmpInputFilename.substr(0, pos) + ".json";
+        std::string outputFilename = "storageEncoded/" + tmpInputFilename.substr(0, pos) + ".json";
         auto *source = new Image(isTextOutput, outputFile, oss);
-        source->ImageSetup("../" + inputFilename);
+        source->ImageSetup(inputFilename);
         auto *enc = new QuadTreeEncoder(isTextOutput, outputFile, oss, quality);
         source->Load();
 
@@ -157,12 +157,17 @@ public:
         delete source;
     };
 
-    void decode(const std::string &imageName, int phases) {
+    void decode(const std::string &inputFilename, int phases) {
         auto start = std::chrono::high_resolution_clock::now();
         sendMessage("\nDecoding:\n");
-        size_t pos = imageName.rfind('.');
-        std::string inputFilename = imageName.substr(0, pos) + ".json";
-        int sizeInput = static_cast<int>(getFilesize("../" + inputFilename));
+        size_t lastSlashPos = inputFilename.find_last_of('/');
+        std::string tmpInputFilename =
+                lastSlashPos != std::string::npos ? inputFilename.substr(lastSlashPos + 1) : inputFilename;
+
+
+        size_t pos = tmpInputFilename.rfind('.');
+        tmpInputFilename = tmpInputFilename.substr(0, pos);
+        int sizeInput = static_cast<int>(getFilesize( inputFilename));
         int width, height;
         std::string extension;
         Transforms *transforms2;
@@ -171,7 +176,7 @@ public:
         for (int phase = 1; phase <= phases; phase++) {
             dec->Decode(transforms2);
         }
-        fs::path outputFilename = "../storageDecoded/" + imageName;// путь сохранения
+        fs::path outputFilename = "storageDecoded/" + tmpInputFilename + '.' + extension;// путь сохранения
         Image *producer = dec->GetNewImage(outputFilename, 0);
         producer->Save();
         int sizeOutput = static_cast<int>(getFilesize(outputFilename));

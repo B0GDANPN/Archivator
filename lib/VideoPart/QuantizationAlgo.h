@@ -306,15 +306,21 @@ public:
 
     void encode(const std::string &inputFilename) {
         auto start = std::chrono::high_resolution_clock::now();
+        int sizeInput = static_cast<int>(getFilesize(inputFilename));
+        size_t lastSlashPos = inputFilename.find_last_of('/');
+        std::string dirName =
+                lastSlashPos != std::string::npos ? inputFilename.substr(lastSlashPos + 1) : inputFilename;
+        size_t pos = dirName.rfind('.');
+        dirName = dirName.substr(0, pos);// путь сохранения
+        fs::create_directory("storageEncoded/" + dirName);
 
-        int sizeInput = static_cast<int>(getFilesize("../" + inputFilename));
-        std::string framedata = "framedata.csv";
-        std::string matdata = "matdata.bin";
-        std::string subframedata = "subframe";
+        std::string framedata = "storageEncoded/" + dirName + "/framedata.csv";
+        std::string matdata = "storageEncoded/" + dirName + "/matdata.bin";
+        std::string subframedata = "storageEncoded/" + dirName + "/subframe";
         fs::create_directory(subframedata);
         sendMessage("Encoding... video\n");
         std::ofstream ofs(framedata);
-        cv::VideoCapture cap("../" + inputFilename);
+        cv::VideoCapture cap(inputFilename);
         double frameCount = cap.get(cv::CAP_PROP_FRAME_COUNT);
         double frameWidth = cap.get(cv::CAP_PROP_FRAME_WIDTH);
         double frameHeight = cap.get(cv::CAP_PROP_FRAME_HEIGHT);
@@ -392,14 +398,11 @@ public:
     //const std::string& framedata = "sample/framedata.csv",
     //                       const std::string& matdata = "sample/matdata.bin",
     //                       const std::string& subframedata = "sample/subframe/"
-    void decode() {
-        std::string framedata = "framedata.csv";
-        std::string matdata = "matdata.bin";
-        std::string subframedata = "subframe";
-        fs::path currentPath = fs::current_path();
-        // Получение имени текущей директории
-        std::string tmp = currentPath.filename().string();
-        fs::path outputPath = "../../storageDecoded/" + tmp + ".mp4";// путь сохранения
+    void decode(const std::string &dirName) {
+        std::string framedata = "storageEncoded/" + dirName + "/framedata.csv";
+        std::string matdata = "storageEncoded/" + dirName + "/matdata.bin";
+        std::string subframedata = "storageEncoded/" + dirName + "/subframe";
+        fs::path outputPath = "storageDecoded/" + dirName + ".mp4";// путь сохранения
 
         uintmax_t sizeInput1 = getFilesize(framedata);
         uintmax_t sizeInput2 = getFilesize(subframedata);

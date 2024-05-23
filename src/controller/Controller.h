@@ -13,7 +13,6 @@
 #include <utility>
 #include <iostream>
 #include <vector>
-#include <filesystem>
 #include "../model/Selector.h"
 #include "../model/Parser.h"
 #include "../../lib/ImagePart/FractalAlgo.h"
@@ -22,7 +21,6 @@
 #include "../../lib/Huffman/HuffmanAlgo.h"
 
 #pragma once
-namespace fs = std::filesystem;
 
 // порядок аргументов enc/dec -o opt1 .. optN -f file1 .. fileM
 // или текстовый файл с такими строками
@@ -42,9 +40,6 @@ public:
         dir = "storageDecoded";
         if (!fs::exists(dir))
             fs::create_directory(dir);
-        fs::path currentPath = fs::current_path();
-        fs::path toSaveEncodedPath = currentPath / "storageEncoded";
-        fs::path toSaveDecodedPath = currentPath / "storageDecoded";
         std::vector<std::string> tokens;
         std::string token;
         std::vector<std::string> argsToParse;
@@ -61,7 +56,6 @@ public:
             }
         }
         std::vector<Dto> args = Parser::parse(argsToParse);
-        fs::current_path(toSaveEncodedPath);
         for (const auto &arg: args) {
             if (arg.files_.empty()) continue;
             AlgorithmEnum algo = Selector::getAlgorithmFromDto(arg);
@@ -76,17 +70,11 @@ public:
                                 lastSlashPos != std::string::npos ? videoName.substr(lastSlashPos + 1) : videoName;
                         size_t pos = dirName.rfind(".mp4");
                         dirName = dirName.substr(0, pos);
-                        fs::create_directory(dirName);
-                        fs::current_path(dirName);
                         if (arg.action_) {//encode
-                            fs::create_directory(dirName);
-                            fs::current_path(dirName);
                             quantizationAlgo.encode(videoName);
                         } else {//decode
-                            fs::current_path(dirName);
-                            quantizationAlgo.decode();
+                            quantizationAlgo.decode(dirName);
                         }
-                        fs::current_path("..");
                     }
                     catch (std::exception) {
                         sendErrorInformation("Error, need correct options: " + toStr(arg));
@@ -94,14 +82,15 @@ public:
                     break;
                 case AlgorithmEnum::FRACTAL:
                     try {
-
                         FractalAlgo fractalAlgo{isTextOutput, outputFile, oss};
                         std::string argName = arg.files_[0];
                         if (arg.action_) {//encode
-                            int quality = stoi(arg.options_[0]);
+                            int quality = 600;
+                            if (!arg.options_.empty()) quality = stoi(arg.options_[0]);
                             fractalAlgo.encode(argName, quality);
                         } else {//decode
-                            int phases = stoi(arg.options_[0]);
+                            int phases = 4;
+                            if (!arg.options_.empty()) phases = stoi(arg.options_[0]);
                             fractalAlgo.decode(argName, phases);
                         }
                     }
@@ -137,10 +126,11 @@ public:
                         sendErrorInformation("Error, need correct options: " + toStr(arg) + '\n');
                     }
                     break;
+                case AlgorithmEnum::ERROR:
+                    sendErrorInformation("Error, need correct options: " + toStr(arg) + '\n');
+                    break;
             }
         }
-        std::string debug_str = oss.str();
-        int hhh=5;
     };
 
 };

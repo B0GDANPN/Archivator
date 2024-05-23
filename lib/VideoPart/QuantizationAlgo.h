@@ -1,10 +1,5 @@
 #ifndef ARCHIVATOR_QUANTIZATIONALGO_H
 #define ARCHIVATOR_QUANTIZATIONALGO_H
-
-//
-// Created by bogdan on 15.04.24.
-//
-
 #pragma once
 
 #include <iostream>
@@ -31,24 +26,11 @@ const size_t NOIZES_PER_SUBFRAME = 500000;
 namespace fs = std::filesystem;
 
 class QuantizationAlgo : public IController {
-public:
-    explicit QuantizationAlgo(bool isTextOutput, const std::string &outputFile, std::ostringstream &shared_oss)
-            : IController(isTextOutput, outputFile, shared_oss) {}
-
     void sendCommonInformation(const CommonInformation &commonInformation) override {
         sendMessage("QuantizationAlgo{ ");
         IController::sendCommonInformation(commonInformation);
         sendMessage("}\n");
     }
-
-    /*QuantizationAlgo(const QuantizationAlgo& other)= default;
-
-    QuantizationAlgo& operator=(const QuantizationAlgo& other)=default;
-    ~QuantizationAlgo()=default;
-
-    QuantizationAlgo(QuantizationAlgo&& other)  noexcept =default;
-
-    QuantizationAlgo& operator=(QuantizationAlgo &&other)  noexcept =default;*/
 
     void sendErrorInformation(const std::string &error) override {
         IController::sendErrorInformation("QuantizationAlgo{ " + error + "}\n");
@@ -62,195 +44,6 @@ public:
         std::string str = oss.str();
         sendMessage(str);
     }
-
-    void encode(std::string &inputFilename) {
-        size_t lastSlashPos = inputFilename.find_last_of('/');
-        inputFilename = lastSlashPos != std::string::npos ? inputFilename.substr(lastSlashPos + 1) : inputFilename;
-        std::string framedata = "framedata.csv";
-        std::string matdata = "matdata.bin";
-        std::string subframedata = "subframe";
-        fs::create_directory(subframedata);
-        sendMessage("Encoding... video\n");
-        auto start = std::chrono::high_resolution_clock::now();
-        std::ofstream ofs(framedata);
-        cv::VideoCapture cap(inputFilename);
-        double frameCount = cap.get(cv::CAP_PROP_FRAME_COUNT);
-        double frameWidth = cap.get(cv::CAP_PROP_FRAME_WIDTH);
-        double frameHeight = cap.get(cv::CAP_PROP_FRAME_HEIGHT);
-        double channelCount = 3; // Цветное видео
-        double pixelSize = 1; // 8-битное цветное видео
-        int sizeInputData = static_cast<int>(frameCount * frameWidth * frameHeight * channelCount * pixelSize);
-        if (!cap.isOpened()) {
-            sendErrorInformation("Failed to open the video file.");
-            return;
-        }
-
-        cv::Mat frame, frame2, dst;
-        size_t start_scene = 0;
-        size_t end_scene = 0;
-
-        cap.read(frame);
-        cap.read(frame2);
-
-        size_t sum;
-        bool end_flag = false;
-        sendMessage("Size frame: " + std::to_string(frameHeight * frameWidth * channelCount * pixelSize) + "\n");
-        ofs << frame.rows << "," << frame.cols << std::endl;
-
-        while (!frame.empty()) {
-
-            while (true) {
-                cap.read(frame2);
-                if (frame2.empty()) {
-                    break;
-                    end_flag = true;
-                }
-                cv::subtract(frame, frame2, dst);
-                sum = cv::sum(dst)[0];
-                end_scene++;
-                if (sum > NOIZES) break;
-            }
-
-            if (start_scene == cap.get(cv::CAP_PROP_FRAME_COUNT) - 1) break;
-
-            auto matricies = splitMatrices(frame, dst, NOIZES_PER_SUBFRAME);
-            sendMessage("Frames from" + std::to_string(start_scene) + " to " + std::to_string(end_scene)
-                        + " Count of mats " + std::to_string(matricies.size()) + '\n');
-
-            ofs << start_scene << "," << end_scene << "," << matricies.size() << std::endl;
-
-            writeMatricesAndPoints(matricies, matdata);// std::string matdata="sampleZip/matdata.bin"
-
-            cap.set(cv::CAP_PROP_POS_FRAMES, start_scene);
-
-            std::vector<cv::Vec3b> subFrameBuffer;
-            while (start_scene != end_scene) {
-                cap.read(frame);
-                writeNumbersExcludingSubmatrices(frame, matricies, subFrameBuffer);
-                start_scene++;
-            }
-            cap.read(frame);
-            const std::string &filename = subframedata;// std::string subframedata= "sampleZip/subframe/"
-            sendMessage("Size of buffer: " + std::to_string(subFrameBuffer.size() * sizeof(cv::Vec3b) / 1024) + '\n');
-            writeBufferToFile(subFrameBuffer, filename);
-        }
-        auto finish = std::chrono::high_resolution_clock::now();
-        auto duration = static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count());
-        uintmax_t size1 = fs::file_size(framedata);
-        uintmax_t size2 = fs::file_size(subframedata);
-        uintmax_t size3 = fs::file_size(matdata);
-
-        int sizeOutputData = static_cast<int>(size1 + size2 + size3);
-        int ratio = sizeInputData / sizeOutputData;
-        auto info = CommonInformation(ratio, duration, sizeInputData, sizeOutputData);
-        sendCommonInformation(info);
-        sendGlobalParams();
-    }
-
-    //const std::string& framedata = "sampleZip/framedata.csv",
-    //                       const std::string& matdata = "sampleZip/matdata.bin",
-    //                       const std::string& subframedata = "sampleZip/subframe/"
-    void decode() {
-        std::string framedata = "framedata.csv";
-        std::string matdata = "matdata.bin";
-        std::string subframedata = "subframe";
-        fs::path currentPath = fs::current_path();
-        // Получение имени текущей директории
-        // Преобразование в строку и удаление части '_encoded'
-        std::string tmp = currentPath.filename().string();
-        size_t pos = tmp.rfind("_encoded");
-        fs::path outputPath = "../../storageDecoded/" + tmp.substr(0, pos) + ".mp4";// путь сохранения
-
-        uintmax_t size1 = fs::file_size(framedata);
-        uintmax_t size2 = fs::file_size(subframedata);
-        uintmax_t size3 = fs::file_size(matdata);
-
-        int sizeInputData = static_cast<int>(size1 + size2 + size3);
-        auto start = std::chrono::high_resolution_clock::now();
-        sendMessage("Decoding video\n");
-        std::ifstream frame(framedata);
-
-        int subFrameDataIndex = 0;
-        int rows = -1;
-        int cols = -1;
-        char delimiter;
-        std::string line;
-        if (std::getline(frame, line)) {
-            std::istringstream ss(line);
-            if (ss >> rows >> delimiter >> cols && delimiter == ',') {
-                sendMessage("Decoding: reading succes\n");
-            } else {
-                sendErrorInformation("Decoding: Not enough data\n");
-                exit(1);
-            }
-        } else {
-            sendErrorInformation("Decoding: reading failed\n");
-            exit(-2);
-        }
-        sendMessage(std::to_string(rows) + ' ' + std::to_string(cols) + '\n');
-        cv::Mat main(rows, cols, CV_8UC3, cv::Scalar(0, 0, 255));
-
-        cv::VideoWriter videoWriter(outputPath, cv::VideoWriter::fourcc('H', '2', '5', '6'), 30, cv::Size(cols, rows));
-        if (!videoWriter.isOpened()) {
-            sendErrorInformation("Unable to open the VideoWriter\n");
-            return;
-        }
-
-        int from, to, matrixCount;
-        int scene = 0;
-        while (std::getline(frame, line)) {
-            std::istringstream ss(line);
-            sendMessage("Decoding scene: " + std::to_string(++scene) + '\n');
-            if (ss >> from >> delimiter >> to >> delimiter >> matrixCount && delimiter == ',') {
-                int frames = to - from;
-                std::vector<cv::Rect> reserved;
-                for (int i = 0; i < matrixCount; i++) {
-                    MatrixInfo c = readNextMatrixAndPoint(matdata);
-                    cv::Mat sub(c.size, CV_8UC3, c.data.data());
-                    cv::Rect roi(c.point, sub.size());
-                    reserved.push_back(roi);
-                    sub.copyTo(main(roi));
-                    if (c.data.empty()) {
-                        sendErrorInformation("Error: Not enough matrix data \n");
-                        exit(3);
-                    }
-                }
-                int pixelIndex = 0;
-                std::vector<cv::Vec3b> pixels = decodeBufferFromFile(
-                        subframedata + std::to_string(subFrameDataIndex) + ".bin");
-                subFrameDataIndex++;
-                for (int k = 0; k < frames; k++) {
-                    for (int i = 0; i < main.rows; ++i) {
-                        for (int j = 0; j < main.cols; ++j) {
-                            bool isInDeprecated = false;
-                            for (const auto &rect: reserved) {
-                                if (rect.contains(cv::Point(j, i))) {
-                                    isInDeprecated = true;
-                                    break;
-                                }
-                            }
-                            if (!isInDeprecated && pixelIndex < pixels.size()) {
-                                main.at<cv::Vec3b>(i, j) = pixels[pixelIndex++];
-                            }
-                        }
-                    }
-                    videoWriter.write(main);
-                }
-            } else {
-                sendErrorInformation("Decoding: can't read framedata.bin\n");
-                exit(4);
-            }
-        }
-        int sizeOutputData = static_cast<int>(fs::file_size(outputPath));
-        int ration = sizeInputData / sizeOutputData;
-        auto finish = std::chrono::high_resolution_clock::now();
-        auto duration = static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count());
-        auto info = CommonInformation(ration, duration, sizeInputData, sizeOutputData);
-        sendCommonInformation(info);
-        sendGlobalParams();
-    }
-
-private:
 
     std::vector<cv::Vec3b> decodeBufferFromFile(const std::string &filename) {
         std::vector<cv::Vec3b> decodedBuffer;
@@ -504,6 +297,200 @@ private:
                 bigMatrix.at<cv::Vec3b>(position.y + y, position.x + x) = smallMatrix.at<cv::Vec3b>(y, x);
             }
         }
+    }
+
+public:
+    explicit QuantizationAlgo(bool isTextOutput, const std::string &outputFile, std::ostringstream &shared_oss)
+            : IController(isTextOutput, outputFile, shared_oss) {}
+
+
+    void encode(const std::string &inputFilename) {
+        auto start = std::chrono::high_resolution_clock::now();
+        int sizeInput = static_cast<int>(getFilesize(inputFilename));
+        size_t lastSlashPos = inputFilename.find_last_of('/');
+        std::string dirName =
+                lastSlashPos != std::string::npos ? inputFilename.substr(lastSlashPos + 1) : inputFilename;
+        size_t pos = dirName.rfind('.');
+        dirName = dirName.substr(0, pos);// путь сохранения
+        fs::create_directory("storageEncoded/" + dirName);
+
+        std::string framedata = "storageEncoded/" + dirName + "/framedata.csv";
+        std::string matdata = "storageEncoded/" + dirName + "/matdata.bin";
+        std::string subframedata = "storageEncoded/" + dirName + "/subframe";
+        fs::create_directory(subframedata);
+        sendMessage("Encoding... video\n");
+        std::ofstream ofs(framedata);
+        cv::VideoCapture cap(inputFilename);
+        double frameCount = cap.get(cv::CAP_PROP_FRAME_COUNT);
+        double frameWidth = cap.get(cv::CAP_PROP_FRAME_WIDTH);
+        double frameHeight = cap.get(cv::CAP_PROP_FRAME_HEIGHT);
+        double channelCount = 3; // Цветное видео
+        double pixelSize = 1; // 8-битное цветное видео
+        if (!cap.isOpened()) {
+            sendErrorInformation("Failed to open the video file.");
+            return;
+        }
+
+        cv::Mat frame, frame2, dst;
+        size_t start_scene = 0;
+        size_t end_scene = 0;
+
+        cap.read(frame);
+        cap.read(frame2);
+
+        size_t sum;
+        bool end_flag = false;
+        sendMessage("Size frame: " + std::to_string(frameHeight * frameWidth * channelCount * pixelSize) + "\n");
+        ofs << frame.rows << "," << frame.cols << std::endl;
+
+        while (!frame.empty()) {
+
+            while (true) {
+                cap.read(frame2);
+                if (frame2.empty()) {
+                    break;
+                    end_flag = true;
+                }
+                cv::subtract(frame, frame2, dst);
+                sum = cv::sum(dst)[0];
+                end_scene++;
+                if (sum > NOIZES) break;
+            }
+
+            if (start_scene == cap.get(cv::CAP_PROP_FRAME_COUNT) - 1) break;
+
+            auto matricies = splitMatrices(frame, dst, NOIZES_PER_SUBFRAME);
+            sendMessage("Frames from" + std::to_string(start_scene) + " to " + std::to_string(end_scene)
+                        + " Count of mats " + std::to_string(matricies.size()) + '\n');
+
+            ofs << start_scene << "," << end_scene << "," << matricies.size() << std::endl;
+
+            writeMatricesAndPoints(matricies, matdata);// std::string matdata="sampleZip/matdata.bin"
+
+            cap.set(cv::CAP_PROP_POS_FRAMES, start_scene);
+
+            std::vector<cv::Vec3b> subFrameBuffer;
+            while (start_scene != end_scene) {
+                cap.read(frame);
+                writeNumbersExcludingSubmatrices(frame, matricies, subFrameBuffer);
+                start_scene++;
+            }
+            cap.read(frame);
+            const std::string &filename = subframedata;// std::string subframedata= "sampleZip/subframe/"
+            sendMessage("Size of buffer: " + std::to_string(subFrameBuffer.size() * sizeof(cv::Vec3b) / 1024) + '\n');
+            writeBufferToFile(subFrameBuffer, filename);
+        }
+        auto finish = std::chrono::high_resolution_clock::now();
+        auto duration = static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count());
+        uintmax_t sizeOutput1 = getFilesize(framedata);
+        uintmax_t sizeOutput2 = getFilesize(subframedata);
+        uintmax_t sizeOutput3 = getFilesize(matdata);
+
+        int sizeOutput = static_cast<int>(sizeOutput1 + sizeOutput2 + sizeOutput3);
+        double ratio = static_cast<double>(sizeOutput) / sizeInput;
+        auto info = CommonInformation(ratio, duration, sizeInput, sizeOutput);
+        sendGlobalParams();
+        sendCommonInformation(info);
+    }
+
+    // need /../../..sample.mp4
+    //storageEncoded/sample
+    //const std::string& framedata = "sample/framedata.csv",
+    //                       const std::string& matdata = "sample/matdata.bin",
+    //                       const std::string& subframedata = "sample/subframe/"
+    void decode(const std::string &dirName) {
+        std::string framedata = "storageEncoded/" + dirName + "/framedata.csv";
+        std::string matdata = "storageEncoded/" + dirName + "/matdata.bin";
+        std::string subframedata = "storageEncoded/" + dirName + "/subframe";
+        fs::path outputPath = "storageDecoded/" + dirName + ".mp4";// путь сохранения
+
+        uintmax_t sizeInput1 = getFilesize(framedata);
+        uintmax_t sizeInput2 = getFilesize(subframedata);
+        uintmax_t sizeInput3 = getFilesize(matdata);
+
+        int sizeInput = static_cast<int>(sizeInput1 + sizeInput2 + sizeInput3);
+        auto start = std::chrono::high_resolution_clock::now();
+        sendMessage("Decoding video\n");
+        std::ifstream frame(framedata);
+
+        int subFrameDataIndex = 0;
+        int rows = -1;
+        int cols = -1;
+        char delimiter;
+        std::string line;
+        if (std::getline(frame, line)) {
+            std::istringstream ss(line);
+            if (ss >> rows >> delimiter >> cols && delimiter == ',') {
+                sendMessage("Decoding: reading succes\n");
+            } else {
+                sendErrorInformation("Decoding: Not enough data\n");
+                exit(1);
+            }
+        } else {
+            sendErrorInformation("Decoding: reading failed\n");
+            exit(-2);
+        }
+        sendMessage(std::to_string(rows) + ' ' + std::to_string(cols) + '\n');
+        cv::Mat main(rows, cols, CV_8UC3, cv::Scalar(0, 0, 255));
+
+        cv::VideoWriter videoWriter(outputPath, cv::VideoWriter::fourcc('H', '2', '5', '6'), 30, cv::Size(cols, rows));
+        if (!videoWriter.isOpened()) {
+            sendErrorInformation("Unable to open the VideoWriter\n");
+            return;
+        }
+
+        int from, to, matrixCount;
+        int scene = 0;
+        while (std::getline(frame, line)) {
+            std::istringstream ss(line);
+            sendMessage("Decoding scene: " + std::to_string(++scene) + '\n');
+            if (ss >> from >> delimiter >> to >> delimiter >> matrixCount && delimiter == ',') {
+                int frames = to - from;
+                std::vector<cv::Rect> reserved;
+                for (int i = 0; i < matrixCount; i++) {
+                    MatrixInfo c = readNextMatrixAndPoint(matdata);
+                    cv::Mat sub(c.size, CV_8UC3, c.data.data());
+                    cv::Rect roi(c.point, sub.size());
+                    reserved.push_back(roi);
+                    sub.copyTo(main(roi));
+                    if (c.data.empty()) {
+                        sendErrorInformation("Error: Not enough matrix data \n");
+                        exit(3);
+                    }
+                }
+                int pixelIndex = 0;
+                std::vector<cv::Vec3b> pixels = decodeBufferFromFile(
+                        subframedata + std::to_string(subFrameDataIndex) + ".bin");
+                subFrameDataIndex++;
+                for (int k = 0; k < frames; k++) {
+                    for (int i = 0; i < main.rows; ++i) {
+                        for (int j = 0; j < main.cols; ++j) {
+                            bool isInDeprecated = false;
+                            for (const auto &rect: reserved) {
+                                if (rect.contains(cv::Point(j, i))) {
+                                    isInDeprecated = true;
+                                    break;
+                                }
+                            }
+                            if (!isInDeprecated && pixelIndex < pixels.size()) {
+                                main.at<cv::Vec3b>(i, j) = pixels[pixelIndex++];
+                            }
+                        }
+                    }
+                    videoWriter.write(main);
+                }
+            } else {
+                sendErrorInformation("Decoding: can't read framedata.bin\n");
+                exit(4);
+            }
+        }
+        int sizeOutput = static_cast<int>(getFilesize(outputPath));
+        double ratio = static_cast<double>(sizeOutput) / sizeInput;
+        auto finish = std::chrono::high_resolution_clock::now();
+        auto duration = static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count());
+        auto info = CommonInformation(ratio, duration, sizeInput, sizeOutput);
+        sendGlobalParams();
+        sendCommonInformation(info);
     }
 
 };

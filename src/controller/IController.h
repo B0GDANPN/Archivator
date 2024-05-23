@@ -2,8 +2,8 @@
 // Created by bogdan on 24.04.24.
 //
 
-#ifndef TESTFRACTAL_ICONTROLLER_H
-#define TESTFRACTAL_ICONTROLLER_H
+#ifndef ARCHIVATOR_ICONTROLLER_H
+#define ARCHIVATOR_ICONTROLLER_H
 
 #include "../dto/CommonInformation.h"
 #include <string>
@@ -20,8 +20,11 @@ public:
     std::string outputFile;
     std::ostringstream &oss;
 
-    explicit IController(bool isTextOutput, std::string outputFile,std::ostringstream& ref_oss) : isTextOutput(isTextOutput),
-                                                                      outputFile(std::move(outputFile)), oss(ref_oss) {}
+    explicit IController(bool isTextOutput, std::string outputFile, std::ostringstream &ref_oss) : isTextOutput(
+            isTextOutput),
+                                                                                                   outputFile(std::move(
+                                                                                                           outputFile)),
+                                                                                                   oss(ref_oss) {}
 
     void sendMessage(const std::string &message) const {
         if (isTextOutput) {
@@ -50,6 +53,17 @@ public:
     virtual void sendErrorInformation(const std::string &error) {
         sendMessage(error);
     };
+
+    static std::streamsize getFilesize(const std::string &filename) {
+        std::ifstream in(filename, std::ifstream::ate | std::ifstream::binary);
+        if (in) {
+            std::streamsize size = in.tellg();
+            in.close();
+            return size;
+        }
+        return -1;
+    }
+
 };
 
-#endif TESTFRACTAL_ICONTROLLER_H
+#endif ARCHIVATOR_ICONTROLLER_H

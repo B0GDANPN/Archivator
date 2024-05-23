@@ -1,5 +1,5 @@
-#ifndef E_H
-#define E_H
+#ifndef ARCHIVATOR_ENCODER_H
+#define ARCHIVATOR_ENCODER_H
 #pragma once
 #include <cstdlib>
 #include <vector>
@@ -126,4 +126,4 @@ public:
     Image img{isTextOutput,outputFile,oss};
 };
 
-#endif E_H
+#endif ARCHIVATOR_ENCODER_H

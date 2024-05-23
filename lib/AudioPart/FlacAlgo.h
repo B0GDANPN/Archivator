@@ -15,20 +15,17 @@
 #include <cmath>
 #include <algorithm>
 #include <chrono>
+#include <filesystem>
 #include "../../src/controller/Controller.h"
 #include "../../src/dto/BitSteam.h"
 #include "../../src/dto/WAWHeader.h"
 #include "../../src/dto/CommonInformation.h"
 #include <sstream>
 
+namespace fs = std::filesystem;
 static constexpr int globalSizeBlocks = 16384 * 8; // Size of blocks (INT32_MAX for 1 block)
 static constexpr int globalOrder = 25;            // LPC model globalOrder
 static constexpr int globalK = 8;                // Rice code parameter
-struct Information {
-    double compression;
-    std::chrono::milliseconds time;
-    int globalSizeBlocks, globalOrder, k;
-};
 
 // Linear predictive coding
 class LPC {
@@ -58,7 +55,7 @@ public:
 
 
         Am1[0] = 1;
-        double Em, km = 0;
+        double Em, km;
 
         Am1[0] = 1;
         alpha[0] = 1.0;
@@ -105,11 +102,6 @@ public:
 class FlacAlgo : public IController {
     friend class LPC;
 
-public:
-    explicit FlacAlgo(bool isTextOutput, const std::string &outputFile,std::ostringstream& ref_oss)
-            : IController(isTextOutput, outputFile,ref_oss) {
-    }
-
     void sendCommonInformation(const CommonInformation &commonInformation) override {
         sendMessage("FlacAlgo{ ");
         IController::sendCommonInformation(commonInformation);
@@ -127,131 +119,6 @@ public:
         std::string str = oss.str();
         sendMessage(str);
     }
-
-    void encode(std::string &inputFilename) {
-        size_t lastSlashPos = inputFilename.find_last_of('/');
-        inputFilename = lastSlashPos != std::string::npos ? inputFilename.substr(lastSlashPos + 1) : inputFilename;
-        auto start = std::chrono::high_resolution_clock::now();
-        size_t pos = inputFilename.rfind('.');
-        std::string outputFilename = inputFilename.substr(0, pos) + ".flac";// путь сохранения
-        WAVHeader header{};
-        if (!readWAVHeader(inputFilename, header)) {
-            sendErrorInformation("Failed to read WAV file.\n");
-            exit(-1);
-        }
-        BitStream stream;
-        size_t size = 0;
-        for (int i = 0; header.subchunk2Size / sizeof(int16_t) > i * globalSizeBlocks; ++i) {
-            std::vector<int16_t> pcmData = readWAVData(inputFilename, header, globalSizeBlocks * i);
-            LPC lpc = *new LPC();
-            lpc.train(pcmData);
-
-            for (size_t j = 0; j < globalOrder + 1; ++j) {
-                int16_t arr[4] = {};
-                std::memcpy(arr, &lpc.coeffs[j], sizeof(double));
-                riceEncode(stream, arr[0]);
-                riceEncode(stream, arr[1]);
-                riceEncode(stream, arr[2]);
-                riceEncode(stream, arr[3]);
-            }
-
-            for (size_t j = 0; j < pcmData.size(); ++j) {
-                riceEncode(stream, pcmData[j] - lpc.predict(pcmData, j));
-            }
-            delete &lpc;
-        }
-        std::ofstream outputFile(outputFilename, std::ios::binary);
-        if (outputFile.is_open()) {
-            outputFile.write(reinterpret_cast<const char *>(&header), sizeof(WAVHeader));
-            size = stream.data.size();
-            outputFile.write(reinterpret_cast<const char *>(&size), sizeof(size_t));
-            outputFile.write(reinterpret_cast<const char *>(stream.data.data()), size);
-            outputFile.close();
-            sendMessage("FLAC data saved to: " + outputFilename + '\n');
-        } else {
-            sendErrorInformation("Failed to write FLAC file.\n");
-            exit(-1);
-        }
-        std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-        auto info = CommonInformation(static_cast<int>(header.subchunk2Size / size),
-                                      duration.count(), size, header.subchunk2Size);
-        sendCommonInformation(info);
-        sendGlobalParams();
-    }
-
-    void decode(const std::string &inputFilename) {
-        auto start = std::chrono::high_resolution_clock::now();
-        size_t pos = inputFilename.rfind('.');
-        fs::path outputFilename = "../storageDecoded/" + inputFilename.substr(0, pos) + ".wav";// путь сохранения
-        std::ofstream outputFile(outputFilename, std::ios::binary);
-        std::ifstream inputFile(inputFilename, std::ios::binary);
-
-        size_t size;
-        WAVHeader header{};
-        std::vector<double> lpccoeffs(globalOrder + 1);
-        std::vector<uint8_t> flacData;
-        if (inputFile.is_open()) {
-
-            inputFile.read(reinterpret_cast<char *>(&header), sizeof(WAVHeader));
-
-            if (outputFile.is_open()) {
-                outputFile.write(reinterpret_cast<const char *>(&header), sizeof(WAVHeader));
-            } else {
-                sendErrorInformation("Failed to write WAV file.\n");
-                exit(-1);
-            }
-
-            inputFile.read(reinterpret_cast<char *>(&size), sizeof(size_t));
-            flacData.reserve(size);
-            flacData.resize(size);
-            inputFile.read(reinterpret_cast<char *>(flacData.data()), size);
-            inputFile.close();
-
-            std::vector<int16_t> data = decodeVector(flacData);
-
-            for (int i = 0; header.subchunk2Size / sizeof(int16_t) > i * globalSizeBlocks; ++i) {
-                std::vector<double> lpccoeffs(globalOrder + 1);
-                for (size_t j = 0; j < globalOrder + 1; ++j) {
-                    double coefficient;
-                    std::memcpy(&coefficient, &data[i * (globalSizeBlocks + (globalOrder + 1) * 4) + 4 * j],
-                                sizeof(double));
-                    lpccoeffs[j] = coefficient;
-                }
-
-                LPC *lpc = new LPC(lpccoeffs);
-
-                std::vector<int16_t> pcmData;
-                int shift = i * globalSizeBlocks + (i + 1) * 4 * (globalOrder + 1);
-                int pcmSize = data.size() - shift >= globalSizeBlocks ? globalSizeBlocks : data.size() - shift;
-                pcmData.reserve(pcmSize);
-                for (size_t j = 0; j < pcmSize; ++j) {
-                    pcmData.push_back(lpc->predict(pcmData, j) + data[j + shift]);
-                }
-                delete &lpc;
-                if (outputFile.is_open()) {
-                    outputFile.write(reinterpret_cast<const char *>(pcmData.data()), pcmData.size() * sizeof(int16_t));
-                } else {
-                    sendErrorInformation("Failed to write file\n");
-                    exit(-1);
-                }
-            }
-            sendMessage("WAV data saved to: " + outputFilename.string() + '\n');
-            outputFile.close();
-        } else {
-            sendErrorInformation("Failed to read FLAC file.\n");
-            exit(-1);
-        }
-        std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-        auto info = CommonInformation(static_cast<int>(header.subchunk2Size / size),
-                                      duration.count(), size, header.subchunk2Size);
-        sendCommonInformation(info);
-        sendGlobalParams();
-    }
-
-
-private:
 
     static void riceEncode(BitStream &stream, int num) {
         if (num < 0) {
@@ -357,6 +224,143 @@ private:
 
         file.close();
         return audioData;
+    }
+
+public:
+    explicit FlacAlgo(bool isTextOutput, const std::string &outputFile, std::ostringstream &ref_oss)
+            : IController(isTextOutput, outputFile, ref_oss) {
+    }
+
+    void encode(const std::string &inputFilename) {
+        auto start = std::chrono::high_resolution_clock::now();
+        int sizeInput = static_cast<int>(getFilesize( inputFilename));
+        size_t lastSlashPos = inputFilename.find_last_of('/');
+        std::string tmpInputFilename =
+                lastSlashPos != std::string::npos ? inputFilename.substr(lastSlashPos + 1) : inputFilename;
+        size_t pos = tmpInputFilename.rfind('.');
+        std::string outputFilename ="storageEncoded/"+ tmpInputFilename.substr(0, pos) + ".flac";// путь сохранения
+        WAVHeader header{};
+        if (!readWAVHeader(inputFilename, header)) {
+            sendErrorInformation("Failed to read WAV file.\n");
+            exit(-1);
+        }
+        BitStream stream;
+        size_t size = 0;
+        for (int i = 0; header.subchunk2Size / sizeof(int16_t) > i * globalSizeBlocks; ++i) {
+            std::vector<int16_t> pcmData = readWAVData( inputFilename, header, globalSizeBlocks * i);
+            LPC lpc = *new LPC();
+            lpc.train(pcmData);
+
+            for (size_t j = 0; j < globalOrder + 1; ++j) {
+                int16_t arr[4] = {};
+                std::memcpy(arr, &lpc.coeffs[j], sizeof(double));
+                riceEncode(stream, arr[0]);
+                riceEncode(stream, arr[1]);
+                riceEncode(stream, arr[2]);
+                riceEncode(stream, arr[3]);
+            }
+
+            for (size_t j = 0; j < pcmData.size(); ++j) {
+                riceEncode(stream, pcmData[j] - lpc.predict(pcmData, j));
+            }
+            delete &lpc;
+        }
+        std::ofstream outputFile(outputFilename, std::ios::binary);
+        if (outputFile.is_open()) {
+            outputFile.write(reinterpret_cast<const char *>(&header), sizeof(WAVHeader));
+            size = stream.data.size();
+            outputFile.write(reinterpret_cast<const char *>(&size), sizeof(size_t));
+            outputFile.write(reinterpret_cast<const char *>(stream.data.data()), size);
+            outputFile.close();
+            sendMessage("FLAC data saved to: " + outputFilename + '\n');
+        } else {
+            sendErrorInformation("Failed to write FLAC file.\n");
+            exit(-1);
+        }
+        std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
+        int sizeOutput = static_cast<int>(getFilesize(outputFilename));
+        double ratio = static_cast<double>(sizeOutput) / sizeInput;
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+        auto info = CommonInformation(ratio,
+                                      duration.count(), sizeInput, sizeOutput);
+        sendCommonInformation(info);
+        sendGlobalParams();
+    }
+
+    void decode(const std::string &inputFilename) {
+        int sizeInput = static_cast<int>(getFilesize( inputFilename));
+        auto start = std::chrono::high_resolution_clock::now();
+        size_t lastSlashPos = inputFilename.find_last_of('/');
+        std::string tmpInputFilename =
+                lastSlashPos != std::string::npos ? inputFilename.substr(lastSlashPos + 1) : inputFilename;
+        size_t pos = tmpInputFilename.rfind('.');
+        fs::path outputFilename = "storageDecoded/" + tmpInputFilename.substr(0, pos) + ".wav";// путь сохранения
+        std::ofstream outputFile(outputFilename, std::ios::binary);
+        std::ifstream inputFile(inputFilename, std::ios::binary);
+
+        size_t size;
+        WAVHeader header{};
+        std::vector<double> lpccoeffs(globalOrder + 1);
+        std::vector<uint8_t> flacData;
+        if (inputFile.is_open()) {
+
+            inputFile.read(reinterpret_cast<char *>(&header), sizeof(WAVHeader));
+
+            if (outputFile.is_open()) {
+                outputFile.write(reinterpret_cast<const char *>(&header), sizeof(WAVHeader));
+            } else {
+                sendErrorInformation("Failed to write WAV file.\n");
+                exit(-1);
+            }
+
+            inputFile.read(reinterpret_cast<char *>(&size), sizeof(size_t));
+            flacData.reserve(size);
+            flacData.resize(size);
+            inputFile.read(reinterpret_cast<char *>(flacData.data()), size);
+            inputFile.close();
+
+            std::vector<int16_t> data = decodeVector(flacData);
+
+            for (int i = 0; header.subchunk2Size / sizeof(int16_t) > i * globalSizeBlocks; ++i) {
+                std::vector<double> lpccoeffs(globalOrder + 1);
+                for (size_t j = 0; j < globalOrder + 1; ++j) {
+                    double coefficient;
+                    std::memcpy(&coefficient, &data[i * (globalSizeBlocks + (globalOrder + 1) * 4) + 4 * j],
+                                sizeof(double));
+                    lpccoeffs[j] = coefficient;
+                }
+
+                LPC *lpc = new LPC(lpccoeffs);
+
+                std::vector<int16_t> pcmData;
+                int shift = i * globalSizeBlocks + (i + 1) * 4 * (globalOrder + 1);
+                int pcmSize = data.size() - shift >= globalSizeBlocks ? globalSizeBlocks : data.size() - shift;
+                pcmData.reserve(pcmSize);
+                for (size_t j = 0; j < pcmSize; ++j) {
+                    pcmData.push_back(lpc->predict(pcmData, j) + data[j + shift]);
+                }
+                delete &lpc;
+                if (outputFile.is_open()) {
+                    outputFile.write(reinterpret_cast<const char *>(pcmData.data()), pcmData.size() * sizeof(int16_t));
+                } else {
+                    sendErrorInformation("Failed to write file\n");
+                    exit(-1);
+                }
+            }
+            sendMessage("WAV data saved to: " + outputFilename.string() + '\n');
+            outputFile.close();
+        } else {
+            sendErrorInformation("Failed to read FLAC file.\n");
+            exit(-1);
+        }
+        int sizeOutput = static_cast<int>(getFilesize(outputFilename));
+        double ratio = static_cast<double>(sizeOutput) / sizeInput;
+        std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+        auto info = CommonInformation(ratio,
+                                      duration.count(), sizeInput, sizeOutput);
+        sendGlobalParams();
+        sendCommonInformation(info);
     }
 
 };

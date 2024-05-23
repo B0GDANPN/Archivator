@@ -2,8 +2,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #ifndef STB_IMAGE_WRITE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-#ifndef IMAGE_H
-#define IMAGE_H
+#ifndef ARCHIVATOR_IMAGE_H
+#define ARCHIVATOR_IMAGE_H
 #pragma once
 
 #include <sstream>
@@ -69,7 +69,7 @@ public:
     }
 
     void Load() {
-        std::string fullName ="../"+ (this->fileName + '.' + this->extension);
+        std::string fullName =(this->fileName + '.' + this->extension);
         std::string curDir=std::filesystem::current_path();
         unsigned char *original_data = stbi_load(fullName.c_str(), &width, &height, &channels, 0);
         if (!original_data) {
@@ -219,6 +219,6 @@ public:
     }
 };
 
-#endif IMAGE_H
+#endif ARCHIVATOR_IMAGE_H
 #endif STB_IMAGE_IMPLEMENTATION
 #endif STB_IMAGE_WRITE_IMPLEMENTATION

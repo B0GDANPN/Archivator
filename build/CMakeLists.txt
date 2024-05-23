@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.6)
 
-project(MyArch)
+project(Archivator)
 
 set(CMAKE_CXX_COMPILER "g++-11")
 

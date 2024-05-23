@@ -1,5 +1,5 @@
-#ifndef IFST_H
-#define IFST_H
+#ifndef ARCHIVATOR_IFST_H
+#define ARCHIVATOR_IFST_H
 #pragma once
 
 #include <string>
@@ -224,4 +224,4 @@ public:
 
 
 
-#endif IFST_H
+#endif ARCHIVATOR_IFST_H

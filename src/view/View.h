@@ -324,7 +324,7 @@ public:
                             std::ostringstream &ref_oss = oss;
                             Controller controller{textOutButton.isPressed(), outputFile, ref_oss};
                             controller.start(inputStr);
-                            std::string outStr = oss.str();
+                            /*std::string/* outStr = oss.str();
                             printText(outStr, outputText, sf::Vector2f(700, 300));
                         } else if (sf::FloatRect(710, 80, 40, 40).contains(static_cast<float >(event.mouseButton.x),
                                                                            static_cast<float >(event.mouseButton.y))) {

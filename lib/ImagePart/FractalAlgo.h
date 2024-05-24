@@ -123,6 +123,9 @@ public:
 
     void encode(const std::string &inputFilename, int quality) {
         int sizeInput = static_cast<int>(getFilesize(inputFilename));
+        if (!chechSize(sizeInput, "non existed image path: " + inputFilename + '\n'))
+            return;
+
         auto start = std::chrono::high_resolution_clock::now();
         sendMessage("\nEncoding:\n");
         size_t lastSlashPos = inputFilename.find_last_of('/');
@@ -159,6 +162,9 @@ public:
 
     void decode(const std::string &inputFilename, int phases) {
         auto start = std::chrono::high_resolution_clock::now();
+        int sizeInput = static_cast<int>(getFilesize( inputFilename));
+        if (!chechSize(sizeInput, "non existed encoded image json: " + inputFilename + '\n'))
+            return;
         sendMessage("\nDecoding:\n");
         size_t lastSlashPos = inputFilename.find_last_of('/');
         std::string tmpInputFilename =
@@ -167,7 +173,6 @@ public:
 
         size_t pos = tmpInputFilename.rfind('.');
         tmpInputFilename = tmpInputFilename.substr(0, pos);
-        int sizeInput = static_cast<int>(getFilesize( inputFilename));
         int width, height;
         std::string extension;
         Transforms *transforms2;

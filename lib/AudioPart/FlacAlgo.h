@@ -233,12 +233,14 @@ public:
 
     void encode(const std::string &inputFilename) {
         auto start = std::chrono::high_resolution_clock::now();
-        int sizeInput = static_cast<int>(getFilesize( inputFilename));
+        int sizeInput = static_cast<int>(getFilesize(inputFilename));
+        if (!chechSize(sizeInput, "non existed audio path: " + inputFilename + '\n'))
+            return;
         size_t lastSlashPos = inputFilename.find_last_of('/');
         std::string tmpInputFilename =
                 lastSlashPos != std::string::npos ? inputFilename.substr(lastSlashPos + 1) : inputFilename;
         size_t pos = tmpInputFilename.rfind('.');
-        std::string outputFilename ="storageEncoded/"+ tmpInputFilename.substr(0, pos) + ".flac";// путь сохранения
+        std::string outputFilename = "storageEncoded/" + tmpInputFilename.substr(0, pos) + ".flac";// путь сохранения
         WAVHeader header{};
         if (!readWAVHeader(inputFilename, header)) {
             sendErrorInformation("Failed to read WAV file.\n");
@@ -247,7 +249,7 @@ public:
         BitStream stream;
         size_t size = 0;
         for (int i = 0; header.subchunk2Size / sizeof(int16_t) > i * globalSizeBlocks; ++i) {
-            std::vector<int16_t> pcmData = readWAVData( inputFilename, header, globalSizeBlocks * i);
+            std::vector<int16_t> pcmData = readWAVData(inputFilename, header, globalSizeBlocks * i);
             LPC lpc = *new LPC();
             lpc.train(pcmData);
 
@@ -288,7 +290,9 @@ public:
     }
 
     void decode(const std::string &inputFilename) {
-        int sizeInput = static_cast<int>(getFilesize( inputFilename));
+        int sizeInput = static_cast<int>(getFilesize(inputFilename));
+        if (!chechSize(sizeInput, "non existed encoded flac image: " + inputFilename + '\n'))
+            return;
         auto start = std::chrono::high_resolution_clock::now();
         size_t lastSlashPos = inputFilename.find_last_of('/');
         std::string tmpInputFilename =

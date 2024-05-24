@@ -54,7 +54,7 @@ public:
         sendMessage(error);
     };
 
-    static std::streamsize getFilesize(const std::string &filename) {
+    static int getFilesize(const std::string &filename) {
         std::ifstream in(filename, std::ifstream::ate | std::ifstream::binary);
         if (in) {
             std::streamsize size = in.tellg();
@@ -64,6 +64,13 @@ public:
         return -1;
     }
 
+    bool chechSize(int size, const std::string &msg) const {
+        if (size == -1) {
+            sendMessage(msg);
+            return false;
+        }
+        return true;
+    }
 };
 
 #endif ARCHIVATOR_ICONTROLLER_H

@@ -307,6 +307,8 @@ public:
     void encode(const std::string &inputFilename) {
         auto start = std::chrono::high_resolution_clock::now();
         int sizeInput = static_cast<int>(getFilesize(inputFilename));
+        if (!chechSize(sizeInput, "non existed video: " + inputFilename + '\n'))
+            return;
         size_t lastSlashPos = inputFilename.find_last_of('/');
         std::string dirName =
                 lastSlashPos != std::string::npos ? inputFilename.substr(lastSlashPos + 1) : inputFilename;
@@ -404,10 +406,15 @@ public:
         std::string subframedata = "storageEncoded/" + dirName + "/subframe";
         fs::path outputPath = "storageDecoded/" + dirName + ".mp4";// путь сохранения
 
-        uintmax_t sizeInput1 = getFilesize(framedata);
-        uintmax_t sizeInput2 = getFilesize(subframedata);
-        uintmax_t sizeInput3 = getFilesize(matdata);
-
+        int sizeInput1 = getFilesize(framedata);
+        int sizeInput2 = getFilesize(subframedata);
+        int sizeInput3 = getFilesize(matdata);
+        if (!chechSize(sizeInput1, "non existed framedata.csv in " + dirName + '\n'))
+            return;
+        if (!chechSize(sizeInput2, "non existed matdata in " + dirName + '\n'))
+            return;
+        if (!chechSize(sizeInput3, "non existed subframe in " + dirName + '\n'))
+            return;
         int sizeInput = static_cast<int>(sizeInput1 + sizeInput2 + sizeInput3);
         auto start = std::chrono::high_resolution_clock::now();
         sendMessage("Decoding video\n");

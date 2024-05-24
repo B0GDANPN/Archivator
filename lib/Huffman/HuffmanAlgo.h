@@ -90,10 +90,12 @@ public:
     void encode(const std::string &inputFilename) {
         auto start = std::chrono::high_resolution_clock::now();
         int sizeInput = static_cast<int>(getFilesize(inputFilename));
+        if (!chechSize(sizeInput, "non existed file to Huffman: " + inputFilename + '\n'))
+            return;
         size_t lastSlashPos = inputFilename.find_last_of('/');
         std::string tmpInputFilename =
                 lastSlashPos != std::string::npos ? inputFilename.substr(lastSlashPos + 1) : inputFilename;
-        std::string outputFilename ="storageEncoded/"+ tmpInputFilename + ".hcf";// путь сохранения
+        std::string outputFilename = "storageEncoded/" + tmpInputFilename + ".hcf";// путь сохранения
 
         std::ifstream inputFile(inputFilename, std::ios::binary);
         std::string text((std::istreambuf_iterator<char>(inputFile)), (std::istreambuf_iterator<char>()));
@@ -162,11 +164,13 @@ public:
     void decode(const std::string &inputFilename) {
         auto start = std::chrono::high_resolution_clock::now();
         int sizeInput = static_cast<int>(getFilesize(inputFilename));
+        if (!chechSize(sizeInput, "non existed encoded hcf file: " + inputFilename + '\n'))
+            return;
         size_t lastSlashPos = inputFilename.find_last_of('/');
         std::string tmpInputFilename =
                 lastSlashPos != std::string::npos ? inputFilename.substr(lastSlashPos + 1) : inputFilename;
         size_t pos = tmpInputFilename.rfind(".hcf");
-        std::string outputFilename = "storageDecoded/"+ tmpInputFilename.substr(0, pos);// путь сохранения
+        std::string outputFilename = "storageDecoded/" + tmpInputFilename.substr(0, pos);// путь сохранения
 
         std::ofstream outFile(outputFilename, std::ios::binary);
 

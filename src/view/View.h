@@ -1,11 +1,14 @@
 #ifndef ARCHIVATOR_VIEW_H
 #define ARCHIVATOR_VIEW_H
+#define _SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING
+#include <experimental/filesystem>
 #pragma once
 
 #include <iostream>
 #include <string>
 #include <vector>
 #include <SFML/Graphics.hpp>
+#include <filesystem>
 
 
 class View {
@@ -139,6 +142,7 @@ public:
 
         sf::Font font;
         if (!font.loadFromFile("Consolas.ttf")) {
+            std::cerr << std::experimental::filesystem::current_path().string() << std::endl;
             std::cerr << "Font loading error!" << std::endl;
         }
 

@@ -1,4 +1,4 @@
-#include "profiler.h"
+#include "Profiler.hpp"
 
 CompressParams Profiler::avalize(std::string path) {
     NoizeData nd = noize_analizer(path);

@@ -44,19 +44,19 @@ class QuantizationAlgo : public IController {
         IController::sendErrorInformation("QuantizationAlgo{ " + error + "}\n");
     }
 
-    void profile() {
+    static void profile() {
         Profiler profiler;
         CompressParams params = profiler.avalize("bob.mp4");
 
         NOIZES = params.NOIZES;
         NOIZES_PER_SUBFRAME = params.NOIZES_PER_SUBFRAME;
         SOLID_DIFFERENCE = params.SOLID_DIFFERENCE;
-        
+
         //logger << "params: \nNoizes: " << NOIZES << "\n"
         //    << "Noizes per subframe: " << NOIZES_PER_SUBFRAME << "\n"
         //    << "Solid difference: " << SOLID_DIFFERENCE << "\n";
     }
-    
+
     void sendGlobalParams() {
         std::stringstream oss;
         oss << "Params: " << SPLIT_DEPTH << " "
@@ -99,64 +99,63 @@ class QuantizationAlgo : public IController {
         return decodedBuffer;
     }
 
-    MatrixInfo readNextMatrixAndPoint(const std::string& filename) {
-    std::ifstream ifs(filename, std::ios::binary);
-    if (!ifs.is_open()) {
-        sendErrorInformation("Failed to open file for reading1!1!!11!1\n");
-        exit(0);
+    MatrixInfo readNextMatrixAndPoint(const std::string &filename) {
+        std::ifstream ifs(filename, std::ios::binary);
+        if (!ifs.is_open()) {
+            sendErrorInformation("Failed to open file for reading1!1!!11!1\n");
+            exit(0);
+        }
+
+        if (ifs.eof()) {
+            return {};
+        }
+
+        cv::Vec3b scalar;
+        bool isSolid;
+        cv::Size size;
+        cv::Point point;
+        size_t dataSize;
+
+        ifs.read(reinterpret_cast<char *>(&scalar), sizeof(cv::Vec3b));
+        ifs.read(reinterpret_cast<char *>(&isSolid), sizeof(bool));
+        ifs.read(reinterpret_cast<char *>(&size), sizeof(cv::Size));
+        ifs.read(reinterpret_cast<char *>(&point), sizeof(cv::Point));
+
+
+        // logger << "DATASIZE: " << dataSize << std::endl;
+        // logger << "SIZE: " << size << std::endl;
+        // logger << "POINT: " << point << std::endl;
+
+
+        std::vector<uchar> decompressedData;
+
+        if (!isSolid) {
+            ifs.read(reinterpret_cast<char *>(&dataSize), sizeof(dataSize));
+            std::vector<uchar> compressedData(dataSize);
+            ifs.read(reinterpret_cast<char *>(compressedData.data()), dataSize);
+            decompressedData = decompressMat(compressedData);
+        } else {
+            fill(scalar, size, decompressedData);
+        }
+
+        MatrixInfo matrixInfo;
+        matrixInfo.data = std::move(decompressedData);
+        matrixInfo.size = size;
+        matrixInfo.point = point;
+        matrixInfo.dataSize = size.height * size.width * COLOR_CHANNELS;
+
+        std::string tempFilename = filename + ".tmp";
+        std::ofstream ofs(tempFilename, std::ios::binary);
+
+        ofs << ifs.rdbuf();
+        ifs.close();
+        ofs.close();
+
+        remove(filename.c_str());
+        rename(tempFilename.c_str(), filename.c_str());
+
+        return matrixInfo;
     }
-
-    if (ifs.eof()) {
-        return MatrixInfo();
-    }
-
-    cv::Vec3b scalar;
-    bool isSolid;
-    cv::Size size;
-    cv::Point point;
-    size_t dataSize; 
-
-    ifs.read(reinterpret_cast<char*>(&scalar), sizeof(cv::Vec3b));
-    ifs.read(reinterpret_cast<char*>(&isSolid), sizeof(bool));
-    ifs.read(reinterpret_cast<char*>(&size), sizeof(cv::Size));
-    ifs.read(reinterpret_cast<char*>(&point), sizeof(cv::Point));
-
-
-    // logger << "DATASIZE: " << dataSize << std::endl;
-    // logger << "SIZE: " << size << std::endl;
-    // logger << "POINT: " << point << std::endl;
-
-
-    std::vector<uchar> decompressedData;
-
-    if (!isSolid) {
-        ifs.read(reinterpret_cast<char*>(&dataSize), sizeof(dataSize));
-        std::vector<uchar> compressedData(dataSize);
-        ifs.read(reinterpret_cast<char*>(compressedData.data()), dataSize);
-        decompressedData = decompressMat(compressedData);
-    }
-    else {
-        fill(scalar, size, decompressedData);
-    }
-
-    MatrixInfo matrixInfo;
-    matrixInfo.data = std::move(decompressedData);
-    matrixInfo.size = size;
-    matrixInfo.point = point;
-    matrixInfo.dataSize = size.height * size.width * COLOR_CHANNELS;
-
-    std::string tempFilename = filename + ".tmp";
-    std::ofstream ofs(tempFilename, std::ios::binary);
-
-    ofs << ifs.rdbuf();
-    ifs.close();
-    ofs.close();
-
-    remove(filename.c_str());
-    rename(tempFilename.c_str(), filename.c_str());
-
-    return matrixInfo;
-}
 
     static std::vector<unsigned char> decompressMat(const std::vector<unsigned char> &compressedData) {
         std::vector<unsigned char> decompressedData;
@@ -181,27 +180,26 @@ class QuantizationAlgo : public IController {
         }
 
         std::vector<uchar> compressedData;
-    for (int row = 0; row < image.rows; ++row) {
-        int count = 1;
-        for (int col = 1; col < image.cols; ++col) {
-            if (isSimilar(image.at<cv::Vec3b>(row, col), image.at<cv::Vec3b>(row, col - 1)) && count < 255) {
-                count++;
+        for (int row = 0; row < image.rows; ++row) {
+            int count = 1;
+            for (int col = 1; col < image.cols; ++col) {
+                if (isSimilar(image.at<cv::Vec3b>(row, col), image.at<cv::Vec3b>(row, col - 1)) && count < 255) {
+                    count++;
+                } else {
+                    compressedData.push_back(count);
+                    compressedData.push_back(image.at<cv::Vec3b>(row, col - 1)[0]);
+                    compressedData.push_back(image.at<cv::Vec3b>(row, col - 1)[1]);
+                    compressedData.push_back(image.at<cv::Vec3b>(row, col - 1)[2]);
+                    count = 1;
+                }
             }
-            else {
-                compressedData.push_back(count);
-                compressedData.push_back(image.at<cv::Vec3b>(row, col - 1)[0]);
-                compressedData.push_back(image.at<cv::Vec3b>(row, col - 1)[1]);
-                compressedData.push_back(image.at<cv::Vec3b>(row, col - 1)[2]);
-                count = 1;
-            }
+            compressedData.push_back(count);
+            compressedData.push_back(image.at<cv::Vec3b>(row, image.cols - 1)[0]);
+            compressedData.push_back(image.at<cv::Vec3b>(row, image.cols - 1)[1]);
+            compressedData.push_back(image.at<cv::Vec3b>(row, image.cols - 1)[2]);
         }
-        compressedData.push_back(count);
-        compressedData.push_back(image.at<cv::Vec3b>(row, image.cols - 1)[0]);
-        compressedData.push_back(image.at<cv::Vec3b>(row, image.cols - 1)[1]);
-        compressedData.push_back(image.at<cv::Vec3b>(row, image.cols - 1)[2]);
-    }
 
-    return compressedData;
+        return compressedData;
     }
 
     void
@@ -213,26 +211,26 @@ class QuantizationAlgo : public IController {
             return;
         }
 
-        for (const auto& matrix_info : matrices) {
+        for (const auto &matrix_info: matrices) {
 
-        std::pair<cv::Vec3b, bool> isSolid = areSolid(matrix_info.second);
-        cv::Size size = matrix_info.second.size();
-        cv::Point point = matrix_info.first;
+            std::pair<cv::Vec3b, bool> isSolid = areSolid(matrix_info.second);
+            cv::Size size = matrix_info.second.size();
+            cv::Point point = matrix_info.first;
 
-        ofs.write(reinterpret_cast<const char*>(&isSolid.first), sizeof(cv::Vec3b));
-        ofs.write(reinterpret_cast<const char*>(&isSolid.second), sizeof(bool));
-        ofs.write(reinterpret_cast<const char*>(&size), sizeof(cv::Size));
-        ofs.write(reinterpret_cast<const char*>(&point), sizeof(cv::Point));
+            ofs.write(reinterpret_cast<const char *>(&isSolid.first), sizeof(cv::Vec3b));
+            ofs.write(reinterpret_cast<const char *>(&isSolid.second), sizeof(bool));
+            ofs.write(reinterpret_cast<const char *>(&size), sizeof(cv::Size));
+            ofs.write(reinterpret_cast<const char *>(&point), sizeof(cv::Point));
 
-        if (!isSolid.second) {
-            std::vector<uchar> vec = compressMat(matrix_info.second);
-            size_t dataSize = vec.size();
-            ofs.write(reinterpret_cast<const char*>(&dataSize), sizeof(dataSize));
-            ofs.write(reinterpret_cast<const char*>(vec.data()), dataSize);
+            if (!isSolid.second) {
+                std::vector<uchar> vec = compressMat(matrix_info.second);
+                size_t dataSize = vec.size();
+                ofs.write(reinterpret_cast<const char *>(&dataSize), sizeof(dataSize));
+                ofs.write(reinterpret_cast<const char *>(vec.data()), dataSize);
+            }
         }
-    }
 
-    ofs.close();
+        ofs.close();
     }
 
     static std::vector<std::pair<cv::Point, cv::Mat>>
@@ -293,64 +291,81 @@ class QuantizationAlgo : public IController {
         }
     }
 
-    void writeBufferToFile(const std::vector<cv::Vec3b>& buffer, const std::string& filename, int threshold = 10) {
-    static int fileCounter = 0;
+    void writeBufferToFile(const std::vector<cv::Vec3b> &buffer, const std::string &filename, int threshold = 10) {
+        static int fileCounter = 0;
 
-    std::stringstream ss;
-    ss << filename << fileCounter++ << ".bin";
-    std::string uniqueFilename = ss.str();
-    std::ofstream outputFile(uniqueFilename, std::ios::binary);
-    if (!outputFile.is_open()) {
-        sendErrorInformation("Unable to open the file: \n");
-        return;
-    }
-    for (size_t i = 0; i < buffer.size(); ++i) {
-        int count = 1;
-        cv::Vec3b prev_pixel = buffer[i];
-        for (size_t j = i + 1; j < buffer.size(); ++j) {
-            if (isSimilar(prev_pixel, buffer[j], threshold) && count < 255) {
-                count++;
-            }
-            else {
-                outputFile.write(reinterpret_cast<const char*>(&count), sizeof(unsigned char));
-                outputFile.write(reinterpret_cast<const char*>(&prev_pixel), sizeof(cv::Vec3b));
-                i = j - 1;
-                break;
-            }
-        }
-        if (i == buffer.size() - 1) {
-            count = 1;
-            outputFile.write(reinterpret_cast<const char*>(&count), sizeof(unsigned char));
-            outputFile.write(reinterpret_cast<const char*>(&prev_pixel), sizeof(cv::Vec3b));
-        }
-    }
-}
-
-void fill(const cv::Vec3b& value, const cv::Size& size, std::vector<uchar>& data) {
-    size_t numElements = size.width * size.height;  // 3 color channels
-
-    for (size_t i = 0; i < numElements; i++) {
-        data.push_back(value[0]);
-        data.push_back(value[1]);
-        data.push_back(value[2]);
-    }
-
-}
-
-    void insertMatrix(cv::Mat &bigMatrix, const cv::Mat &smallMatrix, cv::Point position) {
-        if (position.x < 0 || position.y < 0 ||
-            position.x + smallMatrix.cols > bigMatrix.cols ||
-            position.y + smallMatrix.rows > bigMatrix.rows) {
-            sendErrorInformation("Error: Invalid position or size for insertion!11!!11\n");
+        std::stringstream ss;
+        ss << filename << fileCounter++ << ".bin";
+        std::string uniqueFilename = ss.str();
+        std::ofstream outputFile(uniqueFilename, std::ios::binary);
+        if (!outputFile.is_open()) {
+            sendErrorInformation("Unable to open the file: \n");
             return;
         }
-
-        for (int y = 0; y < smallMatrix.rows; ++y) {
-            for (int x = 0; x < smallMatrix.cols; ++x) {
-                bigMatrix.at<cv::Vec3b>(position.y + y, position.x + x) = smallMatrix.at<cv::Vec3b>(y, x);
+        for (size_t i = 0; i < buffer.size(); ++i) {
+            int count = 1;
+            cv::Vec3b prev_pixel = buffer[i];
+            for (size_t j = i + 1; j < buffer.size(); ++j) {
+                if (isSimilar(prev_pixel, buffer[j], threshold) && count < 255) {
+                    count++;
+                } else {
+                    outputFile.write(reinterpret_cast<const char *>(&count), sizeof(unsigned char));
+                    outputFile.write(reinterpret_cast<const char *>(&prev_pixel), sizeof(cv::Vec3b));
+                    i = j - 1;
+                    break;
+                }
+            }
+            if (i == buffer.size() - 1) {
+                count = 1;
+                outputFile.write(reinterpret_cast<const char *>(&count), sizeof(unsigned char));
+                outputFile.write(reinterpret_cast<const char *>(&prev_pixel), sizeof(cv::Vec3b));
             }
         }
     }
+
+    static void fill(const cv::Vec3b &value, const cv::Size &size, std::vector<uchar> &data) {
+        size_t numElements = size.width * size.height;  // 3 color channels
+
+        for (size_t i = 0; i < numElements; i++) {
+            data.push_back(value[0]);
+            data.push_back(value[1]);
+            data.push_back(value[2]);
+        }
+
+    }
+
+    static cv::Vec3b scalarToVec3b(const cv::Scalar &scalar) {
+        return {static_cast<uchar>(scalar[0] + 0.5),
+                static_cast<uchar>(scalar[1] + 0.5),
+                static_cast<uchar>(scalar[2] + 0.5)};
+    }
+
+    static bool isSimilar(const cv::Vec3b &pixel1, const cv::Vec3b &pixel2, int threshold = CACHED_FRAME_DIFFERENCE) {
+        int distance = 0;
+        for (int i = 0; i < 3; ++i) {
+            distance += static_cast<int>(pixel1[i]) - static_cast<int>(pixel2[i]);
+        }
+        return distance <= threshold;
+    }
+
+    static std::pair<cv::Vec3b, bool> areSolid(const cv::Mat &matrix, double threshold = SOLID_DIFFERENCE) {
+        cv::Scalar meanValue = cv::mean(matrix);
+
+        for (int i = 0; i < matrix.rows; ++i) {
+            for (int j = 0; j < matrix.cols; ++j) {
+                cv::Vec3b pixel = matrix.at<cv::Vec3b>(i, j);
+                double diffB = std::abs(pixel[0] - meanValue.val[0]);
+                double diffG = std::abs(pixel[1] - meanValue.val[1]);
+                double diffR = std::abs(pixel[2] - meanValue.val[2]);
+
+                if (diffB > threshold || diffG > threshold || diffR > threshold) {
+                    return std::make_pair(scalarToVec3b(meanValue), false);
+                }
+            }
+        }
+        return std::make_pair(scalarToVec3b(meanValue), true);
+    }
+
 
 public:
     explicit QuantizationAlgo(bool isTextOutput, const std::string &outputFile, std::ostringstream &shared_oss)
@@ -446,37 +461,6 @@ public:
         sendCommonInformation(info);
     }
 
-    cv::Vec3b scalarToVec3b(const cv::Scalar& scalar) {
-    return cv::Vec3b(static_cast<uchar>(scalar[0] + 0.5),
-        static_cast<uchar>(scalar[1] + 0.5),
-        static_cast<uchar>(scalar[2] + 0.5));
-        }
-
-    bool isSimilar(const cv::Vec3b& pixel1, const cv::Vec3b& pixel2, int threshold = CACHED_FRAME_DIFFERENCE) {
-        int distance = 0;
-        for (int i = 0; i < 3; ++i) {
-            distance += static_cast<int>(pixel1[i]) - static_cast<int>(pixel2[i]);
-        }
-        return distance <= threshold;
-    }
-
-    std::pair<cv::Vec3b, bool> areSolid(const cv::Mat& matrix, double threshold = SOLID_DIFFERENCE) {
-        cv::Scalar meanValue = cv::mean(matrix);
-
-        for (int i = 0; i < matrix.rows; ++i) {
-            for (int j = 0; j < matrix.cols; ++j) {
-                cv::Vec3b pixel = matrix.at<cv::Vec3b>(i, j);
-                double diffB = std::abs(pixel[0] - meanValue.val[0]);
-                double diffG = std::abs(pixel[1] - meanValue.val[1]);
-                double diffR = std::abs(pixel[2] - meanValue.val[2]);
-
-                if (diffB > threshold || diffG > threshold || diffR > threshold) {
-                    return std::make_pair(scalarToVec3b(meanValue), false);
-                }
-            }
-        }
-        return std::make_pair(scalarToVec3b(meanValue), true);
-    }
 
     // need /../../..sample.mp4
     //storageEncoded/sample
@@ -518,7 +502,8 @@ public:
         sendMessage(std::to_string(rows) + ' ' + std::to_string(cols) + '\n');
         cv::Mat main(rows, cols, CV_8UC3, cv::Scalar(0, 0, 255));
 
-        cv::VideoWriter videoWriter(outputPath.string(), cv::VideoWriter::fourcc('H', '2', '5', '6'), 30, cv::Size(cols, rows));
+        cv::VideoWriter videoWriter(outputPath.string(), cv::VideoWriter::fourcc('H', '2', '5', '6'), 30,
+                                    cv::Size(cols, rows));
         if (!videoWriter.isOpened()) {
             sendErrorInformation("Unable to open the VideoWriter\n");
             return;

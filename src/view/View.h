@@ -1,7 +1,13 @@
 #ifndef ARCHIVATOR_VIEW_H
 #define ARCHIVATOR_VIEW_H
+#ifdef _WIN32
 #define _SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING
 #include <experimental/filesystem>
+#else
+
+#include <gtk/gtk.h>
+
+#endif
 #pragma once
 
 #include <iostream>
@@ -13,9 +19,9 @@
 
 class View {
 private:
-    /*std::vector<std::wstring> selectFiles(const std::string& initialPath) {
+    static std::vector<std::wstring> selectFiles(const std::string &initialPath) {
         std::vector<std::wstring> selectedFiles;
-
+#ifdef _WIN32
         HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED);
         if (FAILED(hr)) {
             std::cerr << "Failed to initialize COM" << std::endl;
@@ -51,7 +57,7 @@ private:
             }
         }
 
-        hr = pFileOpen->Show(NULL);
+        hr = pFileOpen->Show(NULL);.
         if (SUCCEEDED(hr)) {
             IShellItemArray* pItems;
             hr = pFileOpen->GetResults(&pItems);
@@ -80,9 +86,43 @@ private:
 
         pFileOpen->Release();
         CoUninitialize();
+#else
+        gtk_init(nullptr, nullptr);
+        // Create the file chooser dialog directly
+        GtkWidget *dialog = gtk_file_chooser_dialog_new("Open Files",
+                                                        nullptr,
+                                                        GTK_FILE_CHOOSER_ACTION_OPEN,
+                                                        "_Cancel",
+                                                        GTK_RESPONSE_CANCEL,
+                                                        "_Open",
+                                                        GTK_RESPONSE_ACCEPT,
+                                                        nullptr);
+        GtkFileChooser *chooser = GTK_FILE_CHOOSER(dialog);
+
+        // Set the file chooser to allow selecting multiple files
+        gtk_file_chooser_set_select_multiple(chooser, TRUE);
+
+        // Run the dialog and wait for user interaction
+        gint res = gtk_dialog_run(GTK_DIALOG(dialog));
+        if (res == GTK_RESPONSE_ACCEPT) {
+            GSList *files = gtk_file_chooser_get_filenames(chooser);
+            for (GSList *iter = files; iter != nullptr; iter = iter->next) {
+                const char *file_path = static_cast<const char *>(iter->data);
+                fs::path chosen_file_path = fs::canonical(fs::path(file_path));
+                fs::path current_dir = fs::current_path();
+                fs::path relative_path = fs::relative(chosen_file_path, current_dir);
+                std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter(new std::codecvt_utf8_utf16<wchar_t>);
+                std::wstring wstr = converter.from_bytes(relative_path.string());
+                selectedFiles.push_back(wstr);
+            }
+            // Free the list of file paths
+            g_slist_free(files);
+        }
+        gtk_widget_destroy(dialog);
+#endif
 
         return selectedFiles;
-    }*/
+    }
 
     class Button : public sf::Drawable, public sf::Transformable {
     public:
@@ -142,7 +182,6 @@ public:
 
         sf::Font font;
         if (!font.loadFromFile("Consolas.ttf")) {
-            std::cerr << std::experimental::filesystem::current_path().string() << std::endl;
             std::cerr << "Font loading error!" << std::endl;
         }
 
@@ -328,7 +367,7 @@ public:
                             std::ostringstream &ref_oss = oss;
                             Controller controller{textOutButton.isPressed(), outputFile, ref_oss};
                             controller.start(inputStr);
-                            std::string outStr = oss.str();
+                            outStr = oss.str();
                             printText(outStr, outputText, sf::Vector2f(700, 300));
                         } else if (sf::FloatRect(710, 80, 40, 40).contains(static_cast<float >(event.mouseButton.x),
                                                                            static_cast<float >(event.mouseButton.y))) {
@@ -357,13 +396,14 @@ public:
                                                                           static_cast<float >( event.mouseButton.y))) {
                             writeArea = 1;
                         } else if (browseButton.getGlobalBounds().contains(static_cast<float >(event.mouseButton.x),
+
                                                                            static_cast<float >(event.mouseButton.y))) {
-                            /*std::vector<std::wstring> selectedFiles = selectFiles("");
-                            for (std::wstring filepath : selectedFiles) {
-                                std::string str( filepath.begin(), filepath.end() );
+                            std::vector<std::wstring> selectedFiles = selectFiles("");
+                            for (std::wstring filepath: selectedFiles) {
+                                std::string str(filepath.begin(), filepath.end());
                                 inputStr += str;
                             }
-                            printText(inputStr, inputText, sf::Vector2f(660, 300), shift1);*/
+                            printText(inputStr, inputText, sf::Vector2f(660, 300), shift1);
                         }
                     }
                 }

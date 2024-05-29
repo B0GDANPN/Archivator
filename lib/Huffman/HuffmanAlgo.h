@@ -32,6 +32,11 @@ private:
                                                                                                          left(left),
                                                                                                          right(right) {}
 
+        ~HuffmanNode() {
+            delete left;
+            delete right;
+        }
+
         bool operator()(HuffmanNode *a, HuffmanNode *b) {
             return a->freq > b->freq;
         }
@@ -127,6 +132,7 @@ public:
 
         BitStream bitStream{};
         writeTreeToStream(root, bitStream);
+        delete root;
 
         for (unsigned char c: text) {
             std::string code = codes[c];
@@ -199,7 +205,9 @@ public:
                 current = root;
             }
         };
+        delete root;
         outFile.close();
+
         int sizeOutput = static_cast<int>(getFilesize(outputFilename));
         std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
@@ -207,8 +215,6 @@ public:
         auto info = CommonInformation(ratio,
                                       duration.count(), sizeInput, sizeOutput);
         sendCommonInformation(info);
-
-        delete root;
     }
 };
 

@@ -385,7 +385,7 @@ public:
         std::string framedata = "storageEncoded/" + dirName + "/framedata.csv";
         std::string matdata = "storageEncoded/" + dirName + "/matdata.bin";
         std::string subframedata = "storageEncoded/" + dirName + "/subframe";
-        fs::create_directory(subframedata);
+        //fs::create_directory(subframedata);
         sendMessage("Encoding... video\n");
         std::ofstream ofs(framedata);
         cv::VideoCapture cap(inputFilename);

@@ -87,13 +87,18 @@ public:
             : IController(isTextOutput, outputFile, ref_oss) {
     }
 
-    void encode(const std::string &inputFilename) {
+    void encode(const std::string &inputFilename, const std::string &mod = "Huffman",int sizeInput1=-1,long duration1=0) {
         auto start = std::chrono::high_resolution_clock::now();
-        int sizeInput = static_cast<int>(getFilesize(inputFilename));
+        int sizeInput;
+        if(sizeInput1==-1){
+            sizeInput = static_cast<int>(getFilesize(inputFilename));
+        } else{
+            sizeInput=sizeInput1;
+        }
         size_t lastSlashPos = inputFilename.find_last_of('/');
         std::string tmpInputFilename =
                 lastSlashPos != std::string::npos ? inputFilename.substr(lastSlashPos + 1) : inputFilename;
-        std::string outputFilename ="storageEncoded/"+ tmpInputFilename + ".hcf";// путь сохранения
+        std::string outputFilename = "storageEncoded/" + tmpInputFilename + ".hcf";// путь сохранения
 
         std::ifstream inputFile(inputFilename, std::ios::binary);
         std::string text((std::istreambuf_iterator<char>(inputFile)), (std::istreambuf_iterator<char>()));
@@ -143,7 +148,7 @@ public:
             outputFile.write(reinterpret_cast<const char *>(&a), sizeof(uint8_t));
             outputFile.write(reinterpret_cast<const char *>(bitStream.data.data()), size);
             outputFile.close();
-            sendMessage("Huffman data saved to: " + outputFilename + '\n');
+            sendMessage(mod + " data saved to: " + outputFilename + '\n');
         } else {
             sendErrorInformation("Failed to write Huffman file.\n");
             exit(-1);
@@ -153,8 +158,10 @@ public:
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
         double ratio = static_cast<double>(sizeOutput) / sizeInput;
         auto info = CommonInformation(ratio,
-                                      duration.count(), sizeInput, sizeOutput);
-        sendCommonInformation(info);
+                                      duration.count()+duration1, sizeInput, sizeOutput);
+        sendMessage(mod + "Algo{ ");
+        IController::sendCommonInformation(info);
+        sendMessage("}\n");
 
     }
 
@@ -166,7 +173,7 @@ public:
         std::string tmpInputFilename =
                 lastSlashPos != std::string::npos ? inputFilename.substr(lastSlashPos + 1) : inputFilename;
         size_t pos = tmpInputFilename.rfind(".hcf");
-        std::string outputFilename = "storageDecoded/"+ tmpInputFilename.substr(0, pos);// путь сохранения
+        std::string outputFilename = "storageDecoded/" + tmpInputFilename.substr(0, pos);// путь сохранения
 
         std::ofstream outFile(outputFilename, std::ios::binary);
 

@@ -120,10 +120,6 @@ public:
             imagedata2[i] = G;
             imagedata3[i] = B;
         }
-        std::ostringstream oss;
-        oss << "Readed image (width=" << width << " height=" << height << ")" << '\n';
-        std::string str = oss.str();
-        sendMessage(str);
         delete[]original_data;
     };
 

@@ -3,6 +3,7 @@
 #ifdef _WIN32
 #define _SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING
 #include <experimental/filesystem>
+#include <Windows.h>
 #else
 
 #include <gtk/gtk.h>
@@ -401,7 +402,7 @@ public:
                             std::vector<std::wstring> selectedFiles = selectFiles("");
                             for (std::wstring filepath: selectedFiles) {
                                 std::string str(filepath.begin(), filepath.end());
-                                inputStr += str;
+                                inputStr += ' ' + str;
                             }
                             printText(inputStr, inputText, sf::Vector2f(660, 300), shift1);
                         }

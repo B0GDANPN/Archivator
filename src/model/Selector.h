@@ -31,8 +31,6 @@ private:
         } else {
             if (extension.empty()) {
                 return AlgorithmEnum::QUANTIZATION;
-            } else if (extension == ".json") {
-                return AlgorithmEnum::FRACTAL;
             } else if (extension == ".flac") {
                 return AlgorithmEnum::FLAC;
             } else if (extension == ".hcf") {

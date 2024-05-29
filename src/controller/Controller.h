@@ -85,15 +85,9 @@ public:
                     try {
                         FractalAlgo fractalAlgo{isTextOutput, outputFile, oss};
                         std::string argName = arg.files_[0];
-                        if (arg.action_) {//encode
-                            int quality = 600;
-                            if (!arg.options_.empty()) quality = stoi(arg.options_[0]);
-                            fractalAlgo.encode(argName, quality);
-                        } else {//decode
-                            int phases = 4;
-                            if (!arg.options_.empty()) phases = stoi(arg.options_[0]);
-                            fractalAlgo.decode(argName, phases);
-                        }
+                        int quality = 600;
+                        if (!arg.options_.empty()) quality = stoi(arg.options_[0]);
+                        fractalAlgo.encode(argName, quality);
                     }
                     catch (std::exception) {
                         sendErrorInformation("Error, need correct options: " + toStr(arg));

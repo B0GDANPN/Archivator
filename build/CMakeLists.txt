@@ -1,13 +1,14 @@
-cmake_minimum_required(VERSION 3.6)
+cmake_minimum_required(VERSION 3.31)
 
 project(Archivator)
 
-set(CMAKE_CXX_COMPILER "g++-11")
+set(CMAKE_CXX_COMPILER "clang++")
 
 set(CMAKE_CXX_STANDARD 23)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -w")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wextra")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wpedantic")
 find_package(OpenCV REQUIRED)
 include_directories(../src/controller)
 include_directories(${OpenCV_INCLUDE_DIRS})

@@ -4,7 +4,6 @@
 #pragma once
 
 #include <string>
-#include <utility>
 #include <vector>
 #include "Image.h"
 #include "IFSTransform.h"
@@ -50,13 +49,14 @@ public:
 
             // Apple each transform at a time to this channel
             iter = transforms->ch[channel - 1].begin();
-            for (; iter != transforms->ch[channel - 1].end(); iter++)
+            for (; iter != transforms->ch[channel - 1].end(); iter++) {
                 iter[0]->Execute(origImage, img.width, origImage, img.width, false);
+            }
         }
     }
 
-    Image *GetNewImage(const std::string &fileName, int channel) const {
-        auto *temp = new Image(isTextOutput, outputFile, ref_oss);
+    Image* GetNewImage(const std::string &fileName, int channel) const {
+        auto temp = new Image(isTextOutput, outputFile, ref_oss);
         temp->ImageSetup(fileName);
         temp->channels = img.channels;
         temp->width = img.width;
@@ -73,7 +73,6 @@ public:
         return temp;
     }
 
-public:
     bool isTextOutput;
     std::string outputFile;
     std::ostringstream &ref_oss;

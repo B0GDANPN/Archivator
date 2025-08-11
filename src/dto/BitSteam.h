@@ -11,11 +11,11 @@
 
 struct BitStream {
     std::vector<uint8_t> data;
-    int bitIndex;
+    size_t bitIndex;
 
     BitStream() : bitIndex(0) {}
 
-    explicit BitStream(std::vector<uint8_t> data) : bitIndex(0), data(std::move(data)) {}
+    explicit BitStream(std::vector<uint8_t> data) : data(std::move(data)), bitIndex(0) {}
 
     void addBit(bool bit) {
         if (bitIndex % 8 == 0) {

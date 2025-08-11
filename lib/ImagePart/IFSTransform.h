@@ -2,7 +2,6 @@
 #define ARCHIVATOR_IFST_H
 #pragma once
 
-#include <string>
 #include <vector>
 #include "Image.h"
 
@@ -56,68 +55,8 @@ public:
 
     ~IFSTransform() = default;
 
-    void Execute(PixelValue *src, int srcWidth,
-                 PixelValue *dest, int destWidth, bool downsampled) {
-        int fromX = this->fromX / 2;
-        int fromY = this->fromY / 2;
-        int dX = 1;
-        int dY = 1;
-        bool inOrder = isScanlineOrder();
-
-        if (!downsampled) {
-            PixelValue *newSrc = DownSample(src, srcWidth, this->fromX, this->fromY, size);
-            src = newSrc;
-            srcWidth = size;
-            fromX = fromY = 0;
-        }
-
-        if (!isPositiveX()) {
-            fromX += size - 1;
-            dX = -1;
-        }
-
-        if (!isPositiveY()) {
-            fromY += size - 1;
-            dY = -1;
-        }
-
-        int startX = fromX;
-        int startY = fromY;
-
-        for (int toY = this->toY; toY < (this->toY + size); toY++) {
-            for (int toX = this->toX; toX < (this->toX + size); toX++) {
-
-
-                int pixel = src[fromY * srcWidth + fromX];
-                pixel = (int) (scale * pixel) + offset;
-
-                if (pixel < 0)
-                    pixel = 0;
-                if (pixel > 255)
-                    pixel = 255;
-
-                dest[toY * destWidth + toX] = pixel;
-
-                if (inOrder)
-                    fromX += dX;
-                else
-                    fromY += dY;
-            }
-
-            if (inOrder) {
-                fromX = startX;
-                fromY += dY;
-            } else {
-                fromY = startY;
-                fromX += dX;
-            }
-        }
-
-        if (!downsampled) {
-            delete[]src;
-            src = nullptr;
-        }
-    };
+    void Execute(const PixelValue *src, int srcWidth,
+                 PixelValue *dest, int destWidth, bool downsampled) const;
 
     int getSize() const {
         return size;
@@ -153,7 +92,7 @@ public:
 
 private:
 
-    bool isScanlineOrder() {
+    bool isScanlineOrder() const {
         return (
                 symmetry == SYM_NONE ||
                 symmetry == SYM_R180 ||
@@ -162,7 +101,7 @@ private:
         );
     };
 
-    bool isPositiveX() {
+    bool isPositiveX() const {
         return (
                 symmetry == SYM_NONE ||
                 symmetry == SYM_R90 ||
@@ -171,7 +110,7 @@ private:
         );
     };
 
-    bool isPositiveY() {
+    bool isPositiveY() const {
         return (
                 symmetry == SYM_NONE ||
                 symmetry == SYM_R270 ||
@@ -183,11 +122,11 @@ private:
 private:
 
     // Spatial transformation
-    int fromX;
-    int fromY;
-    int toX;
-    int toY;
-    int size;
+    size_t fromX;
+    size_t fromY;
+    size_t toX;
+    size_t toY;
+    size_t size;
 
     // Symmetry operation
     SYM symmetry;
@@ -197,6 +136,70 @@ private:
     int offset;
 
 };
+
+inline void IFSTransform::Execute(const PixelValue *src, int srcWidth, PixelValue *dest, int destWidth,
+    bool downsampled) const {
+    int fromX = this->fromX / 2;
+    int fromY = this->fromY / 2;
+    int dX = 1;
+    int dY = 1;
+    bool inOrder = isScanlineOrder();
+
+    if (!downsampled) {
+        PixelValue *newSrc = DownSample(src, srcWidth, this->fromX, this->fromY, size);
+        src = newSrc;
+        srcWidth = size;
+        fromX = fromY = 0;
+    }
+
+    if (!isPositiveX()) {
+        fromX += size - 1;
+        dX = -1;
+    }
+
+    if (!isPositiveY()) {
+        fromY += size - 1;
+        dY = -1;
+    }
+
+    int startX = fromX;
+    int startY = fromY;
+
+    for (size_t toY = this->toY; toY < (this->toY + size); toY++) {
+        for (size_t toX = this->toX; toX < (this->toX + size); toX++) {
+
+
+            int pixel = src[fromY * srcWidth + fromX];
+            pixel = static_cast<int>(scale * pixel) + offset;
+
+            if (pixel < 0)
+                pixel = 0;
+            if (pixel > 255)
+                pixel = 255;
+
+            dest[toY * destWidth + toX] = pixel;
+
+            if (inOrder)
+                fromX += dX;
+            else
+                fromY += dY;
+        }
+
+        if (inOrder) {
+            fromX = startX;
+            fromY += dY;
+        } else {
+            fromY = startY;
+            fromX += dX;
+        }
+    }
+
+    if (!downsampled) {
+        delete[]src;
+        src = nullptr;
+    }
+}
+
 typedef std::vector<class IFSTransform *> Transform;
 
 class Transforms {

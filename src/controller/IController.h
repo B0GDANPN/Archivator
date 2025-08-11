@@ -10,12 +10,13 @@
 #include <fstream>
 #include <sstream>
 #include <utility>
-#include <iostream>
 
 #pragma once
 
 class IController {
 public:
+    virtual ~IController() = default;
+
     bool isTextOutput;
     std::string outputFile;
     std::ostringstream &oss;

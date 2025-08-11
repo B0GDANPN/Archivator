@@ -2,33 +2,29 @@
 #define ARCHIVATOR_HUFFMAN_H
 #pragma once
 
-#include <iostream>
 #include <fstream>
 #include <vector>
 #include <string>
 #include <queue>
 #include <map>
 #include <cstdint>
-#include <iomanip>
 #include <filesystem>
-#include "../../src/controller/Controller.h"
 #include "../../src/dto/BitSteam.h"
 
 namespace fs = std::filesystem;
 
 class HuffmanAlgo : public IController {
-private:
     struct HuffmanNode {
         int freq;
         unsigned char data;
         HuffmanNode *left;
         HuffmanNode *right;
 
-        explicit HuffmanNode(unsigned char data, int frequency) : data(data), freq(frequency), left(nullptr),
+        explicit HuffmanNode(unsigned char data, int frequency) : freq(frequency), data(data), left(nullptr),
                                                                   right(nullptr) {}
 
-        explicit HuffmanNode(unsigned char data, int frequency, HuffmanNode *left, HuffmanNode *right) : data(data),
-                                                                                                         freq(frequency),
+        explicit HuffmanNode(unsigned char data, int frequency, HuffmanNode *left, HuffmanNode *right) : freq(frequency),
+                                                                                                         data(data),
                                                                                                          left(left),
                                                                                                          right(right) {}
 
@@ -37,7 +33,7 @@ private:
             delete right;
         }
 
-        bool operator()(HuffmanNode *a, HuffmanNode *b) {
+        bool operator()(const HuffmanNode *a, const HuffmanNode *b) const {
             return a->freq > b->freq;
         }
 
@@ -53,7 +49,12 @@ private:
         IController::sendErrorInformation("HuffmanAlgo{ " + error + "}\n");
     }
 
-    void writeTreeToStream(HuffmanNode *root, BitStream &stream) {
+    static void clearHuffmanRoot(const HuffmanNode * root) {
+        if (root->left!=nullptr){ clearHuffmanRoot(root->left); }
+        if (root->right!=nullptr){ clearHuffmanRoot(root->right); }
+        delete root;
+    }
+    static void writeTreeToStream(const HuffmanNode *root, BitStream &stream) {
         if (root == nullptr)
             return;
         if (root->left == nullptr && root->right == nullptr) {
@@ -66,9 +67,8 @@ private:
         }
     }
 
-    HuffmanNode *readTreeFromStream(BitStream &stream) {
-        bool isLeaf = stream.getBit();
-        if (isLeaf) {
+    static HuffmanNode *readTreeFromStream(BitStream &stream) {
+        if (bool isLeaf = stream.getBit()) {
             unsigned char data = stream.getByte();
             return new HuffmanNode(data, 0);
         } else {
@@ -78,7 +78,7 @@ private:
         }
     }
 
-    void generateCodes(HuffmanNode *node, const std::string &code, std::map<unsigned char, std::string> &codes) {
+    static void generateCodes(const HuffmanNode *node, const std::string &code, std::map<unsigned char, std::string> &codes) {
         if (node == nullptr) return;
         if (node->left == nullptr && node->right == nullptr) {
             codes[node->data] = code;
@@ -113,7 +113,7 @@ public:
         for (unsigned char c: text) {
             frequencies[c]++;
         }
-        auto comp = [](HuffmanNode *a, HuffmanNode *b) { return a->freq > b->freq; };
+        auto comp = [](const HuffmanNode *a, const HuffmanNode *b) { return a->freq > b->freq; };
         std::priority_queue<HuffmanNode *, std::vector<HuffmanNode *>, decltype(comp)> pq(comp);
         for (int i = 0; i < 256; i++) {
             if (frequencies[i] != 0) {
@@ -126,7 +126,7 @@ public:
             pq.pop();
             HuffmanNode *right = pq.top();
             pq.pop();
-            auto *newNode = new HuffmanNode('\0', left->freq + right->freq, left, right);
+            auto newNode = new HuffmanNode('\0', left->freq + right->freq, left, right);
             pq.push(newNode);
         }
 
@@ -137,7 +137,7 @@ public:
 
         BitStream bitStream{};
         writeTreeToStream(root, bitStream);
-        delete root;
+        clearHuffmanRoot(root);
 
         for (unsigned char c: text) {
             std::string code = codes[c];
@@ -170,6 +170,7 @@ public:
         sendMessage("}\n");
 
     }
+
 
 
     void decode(const std::string &inputFilename) {
@@ -212,7 +213,7 @@ public:
                 current = root;
             }
         };
-        delete root;
+        clearHuffmanRoot(root);
         outFile.close();
 
         int sizeOutput = static_cast<int>(getFilesize(outputFilename));

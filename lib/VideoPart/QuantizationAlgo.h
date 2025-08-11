@@ -2,13 +2,11 @@
 #define ARCHIVATOR_QUANTIZATIONALGO_H
 #pragma once
 
-#include <iostream>
 #include <fstream>
 #include <filesystem>
 #include <utility>
 #include <vector>
 #include <cstdint>
-#include <cstring>
 #include <cmath>
 #include <algorithm>
 #include <chrono>
@@ -16,20 +14,18 @@
 #include <opencv2/opencv.hpp>
 #include <string>
 #include "../../src/dto/MatrixInfo.h"
-#include "../../src/dto/Rect.h"
 #include "../../src/dto/CommonInformation.h"
-#include "../../src/controller/Controller.h"
 #include "Profiler.hpp"
 
 
-size_t NOIZES = 2500000;
-size_t NOIZES_PER_SUBFRAME = 500000;
-size_t SOLID_DIFFERENCE = 100;
+inline size_t NOIZES = 2500000;
+inline size_t NOIZES_PER_SUBFRAME = 500000;
+inline size_t SOLID_DIFFERENCE = 100;
 
-const size_t SPLIT_DEPTH = 16;
-const size_t SUBFRAME_DIFFERENCE = 15;
-const size_t CACHED_FRAME_DIFFERENCE = 10;
-const size_t COLOR_CHANNELS = 3;
+constexpr size_t SPLIT_DEPTH = 16;
+constexpr size_t SUBFRAME_DIFFERENCE = 15;
+constexpr size_t CACHED_FRAME_DIFFERENCE = 10;
+constexpr size_t COLOR_CHANNELS = 3;
 
 namespace fs = std::filesystem;
 
@@ -57,7 +53,7 @@ class QuantizationAlgo : public IController {
         //    << "Solid difference: " << SOLID_DIFFERENCE << "\n";
     }
 
-    void sendGlobalParams() {
+    void sendGlobalParams() const {
         std::stringstream oss;
         oss << "Params: " << SPLIT_DEPTH << " "
             << NOIZES << " "
@@ -340,7 +336,7 @@ class QuantizationAlgo : public IController {
                 static_cast<uchar>(scalar[2] + 0.5)};
     }
 
-    static bool isSimilar(const cv::Vec3b &pixel1, const cv::Vec3b &pixel2, int threshold = CACHED_FRAME_DIFFERENCE) {
+    static bool isSimilar(const cv::Vec3b &pixel1, const cv::Vec3b &pixel2, const int threshold = CACHED_FRAME_DIFFERENCE) {
         int distance = 0;
         for (int i = 0; i < 3; ++i) {
             distance += static_cast<int>(pixel1[i]) - static_cast<int>(pixel2[i]);
@@ -389,7 +385,6 @@ public:
         sendMessage("Encoding... video\n");
         std::ofstream ofs(framedata);
         cv::VideoCapture cap(inputFilename);
-        double frameCount = cap.get(cv::CAP_PROP_FRAME_COUNT);
         double frameWidth = cap.get(cv::CAP_PROP_FRAME_WIDTH);
         double frameHeight = cap.get(cv::CAP_PROP_FRAME_HEIGHT);
         double channelCount = 3; // Цветное видео
@@ -407,7 +402,6 @@ public:
         cap.read(frame2);
 
         size_t sum;
-        bool end_flag = false;
         sendMessage("Size frame: " + std::to_string(frameHeight * frameWidth * channelCount * pixelSize) + "\n");
         ofs << frame.rows << "," << frame.cols << std::endl;
 
@@ -417,7 +411,6 @@ public:
                 cap.read(frame2);
                 if (frame2.empty()) {
                     break;
-                    end_flag = true;
                 }
                 cv::subtract(frame, frame2, dst);
                 sum = cv::sum(dst)[0];
@@ -528,7 +521,7 @@ public:
                         exit(3);
                     }
                 }
-                int pixelIndex = 0;
+                size_t pixelIndex = 0;
                 std::vector<cv::Vec3b> pixels = decodeBufferFromFile(
                         subframedata + std::to_string(subFrameDataIndex) + ".bin");
                 subFrameDataIndex++;

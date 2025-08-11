@@ -6,17 +6,14 @@
 #define ARCHIVATOR_FLACALGO_H
 #pragma once
 
-#include <iostream>
 #include <fstream>
 #include <utility>
 #include <vector>
 #include <cstdint>
 #include <cstring>
-#include <cmath>
 #include <algorithm>
 #include <chrono>
 #include <filesystem>
-#include "../../src/controller/Controller.h"
 #include "../../src/dto/BitSteam.h"
 #include "../../src/dto/WAWHeader.h"
 #include "../../src/dto/CommonInformation.h"
@@ -55,7 +52,6 @@ public:
 
 
         Am1[0] = 1;
-        double Em, km;
 
         Am1[0] = 1;
         alpha[0] = 1.0;
@@ -67,14 +63,14 @@ public:
             for (int j = 1; j <= m - 1; ++j) {
                 sum += Am1[j] * r[m - j];
             }
-            km = (r[m] - sum) / Em1;
-            kappa[m - 1] = -float(km);
-            alpha[m] = (float) km;
+            double km = (r[m] - sum) / Em1;
+            kappa[m - 1] = -static_cast<float>(km);
+            alpha[m] = static_cast<float>(km);
 
             for (int j = 1; j <= m - 1; ++j) {
                 alpha[j] = Am1[j] - km * Am1[m - j];
             }
-            Em = (1 - km * km) * Em1;
+            double Em = (1 - km * km) * Em1;
             for (int s = 0; s <= globalOrder; ++s) {
                 Am1[s] = alpha[s];
             }
@@ -87,14 +83,14 @@ public:
         }
     }
 
-    int16_t predict(const std::vector<int16_t> &input, size_t index) {
+    int16_t predict(const std::vector<int16_t> &input, size_t index) const {
         double prediction = coeffs[0];
-        for (int i = 1; i <= globalOrder; ++i) {
+        for (size_t i = 1; i <= globalOrder; ++i) {
             if (i <= index) {
                 prediction += coeffs[i] * input[index - i];
             }
         }
-        return (int16_t) prediction;
+        return static_cast<int16_t>(prediction);
     }
 
 };
@@ -112,7 +108,7 @@ class FlacAlgo : public IController {
         IController::sendErrorInformation("FlacAlgo{ " + error + "}\n");
     }
 
-    void sendGlobalParams() {
+    void sendGlobalParams() const {
         std::ostringstream oss;
         oss << "FlacAlgo: globalSizeBlocks: " << globalSizeBlocks << ", globalOrder: " << globalOrder << ", k: "
             << globalK << '\n';
@@ -197,7 +193,7 @@ class FlacAlgo : public IController {
         return true;
     }
 
-    std::vector<int16_t> readWAVData(const std::string &filename, const WAVHeader &header, int startIndex) {
+    std::vector<int16_t> readWAVData(const std::string &filename, const WAVHeader &header, size_t startIndex) {
         std::ifstream file(filename, std::ios::binary);
         if (!file.is_open()) {
             sendErrorInformation("Failed to open file: " + filename + '\n');
@@ -246,14 +242,14 @@ public:
         }
         BitStream stream;
         size_t size = 0;
-        for (int i = 0; header.subchunk2Size / sizeof(int16_t) > i * globalSizeBlocks; ++i) {
+        for (size_t i = 0; header.subchunk2Size / sizeof(int16_t) > i * globalSizeBlocks; ++i) {
             std::vector<int16_t> pcmData = readWAVData( inputFilename, header, globalSizeBlocks * i);
-            LPC lpc = *new LPC();
-            lpc.train(pcmData);
+            LPC* lpc = new LPC();
+            lpc->train(pcmData);
 
             for (size_t j = 0; j < globalOrder + 1; ++j) {
                 int16_t arr[4] = {};
-                std::memcpy(arr, &lpc.coeffs[j], sizeof(double));
+                std::memcpy(arr,&lpc->coeffs[j], sizeof(double));
                 riceEncode(stream, arr[0]);
                 riceEncode(stream, arr[1]);
                 riceEncode(stream, arr[2]);
@@ -261,7 +257,7 @@ public:
             }
 
             for (size_t j = 0; j < pcmData.size(); ++j) {
-                riceEncode(stream, pcmData[j] - lpc.predict(pcmData, j));
+                riceEncode(stream, pcmData[j] - lpc->predict(pcmData, j));
             }
             delete &lpc;
         }
@@ -321,7 +317,7 @@ public:
 
             std::vector<int16_t> data = decodeVector(flacData);
 
-            for (int i = 0; header.subchunk2Size / sizeof(int16_t) > i * globalSizeBlocks; ++i) {
+            for (size_t i = 0; header.subchunk2Size / sizeof(int16_t) > i * globalSizeBlocks; ++i) {
                 std::vector<double> lpccoeffs(globalOrder + 1);
                 for (size_t j = 0; j < globalOrder + 1; ++j) {
                     double coefficient;
@@ -333,8 +329,8 @@ public:
                 LPC *lpc = new LPC(lpccoeffs);
 
                 std::vector<int16_t> pcmData;
-                int shift = i * globalSizeBlocks + (i + 1) * 4 * (globalOrder + 1);
-                int pcmSize = data.size() - shift >= globalSizeBlocks ? globalSizeBlocks : data.size() - shift;
+                size_t shift = i * globalSizeBlocks + (i + 1) * 4 * (globalOrder + 1);
+                size_t pcmSize = data.size() - shift >= globalSizeBlocks ? globalSizeBlocks : data.size() - shift;
                 pcmData.reserve(pcmSize);
                 for (size_t j = 0; j < pcmSize; ++j) {
                     pcmData.push_back(lpc->predict(pcmData, j) + data[j + shift]);

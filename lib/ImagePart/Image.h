@@ -13,7 +13,6 @@
 #include <string>
 #include <cstring>
 #include <cmath>
-#include "../../src/controller/Controller.h"
 #include <filesystem>
 typedef unsigned char PixelValue;
 
@@ -32,7 +31,7 @@ public:
 public:
     Image(bool isTextOutput, const std::string &outputFile,std::ostringstream& ref_oss) : IController(isTextOutput, outputFile,ref_oss) {};
 
-    void SendInfoModifiedImage(int newWidth, int newHeight) {
+    void SendInfoModifiedImage(int newWidth, int newHeight) const {
         std::ostringstream oss;
         oss << "Modifying image to (width=" << newWidth << " height=" << newHeight << ")" << '\n';
         std::string str = oss.str();
@@ -49,7 +48,7 @@ public:
         IController::sendErrorInformation("FractalAlgo{ " + error + "}\n");
     }
 
-    ~Image() {
+    ~Image() override {
         if (imagedata != nullptr) {
             delete[]imagedata;
             imagedata = nullptr;
@@ -184,7 +183,7 @@ public:
             memcpy(buffer, imagedata3, size);
     }
 
-    void SetChannelData(int channel, PixelValue *buffer, int sizeChannel) {
+    void SetChannelData(int channel, const PixelValue *buffer, int sizeChannel) {
         PixelValue *imagedataTemp = nullptr;
 
 

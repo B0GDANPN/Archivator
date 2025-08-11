@@ -10,12 +10,9 @@
 #include <fstream>
 #include "Image.h"
 #include "IFSTransform.h"
-#include "Encoder.h"
 #include "QuadTreeEncoder.h"
 #include "Decoder.h"
 #include <chrono>
-#include <utility>
-#include <filesystem>
 #include "../../src/controller/IController.h"
 #include "../Huffman/HuffmanAlgo.h"
 
@@ -32,7 +29,7 @@ class FractalAlgo : public IController {
         IController::sendErrorInformation("FractalAlgo{ " + error + "}\n");
     }
 
-    void sendEncodedInformation(int width, int height, int numTransforms) {
+    void sendEncodedInformation(int width, int height, int numTransforms) const {
         std::stringstream oss;
         oss << "Reading image (width=" << width << " height=" << height << ")\n" <<
             "Number of transforms: " << numTransforms << "\n";
@@ -40,7 +37,7 @@ class FractalAlgo : public IController {
         sendMessage(tmp);
     };
 
-    void sendDecodedInformation(int width, int height, int phases) {
+    void sendDecodedInformation(int width, int height, int phases) const {
         std::stringstream oss;
         oss << "Created image (width=" << width << " height=" << height << ")\n" <<
             "Number of phases: " << phases << "\n";
@@ -53,7 +50,7 @@ public:
             : IController(isTextOutput, outputFile, ref_oss) {}
 
 
-    void encode(const std::string &inputFilename, int quality) {
+    void encode(const std::string &inputFilename, int quality) const {
         auto start = std::chrono::high_resolution_clock::now();
         int sizeInput = static_cast<int>(getFilesize(inputFilename));
         sendMessage("\nEncoding:\n");
@@ -63,9 +60,9 @@ public:
 
 
         size_t pos = tmpInputFilename.rfind('.');
-        auto *source = new Image(isTextOutput, outputFile, oss);
+        auto source = new Image(isTextOutput, outputFile, oss);
         source->ImageSetup(inputFilename);
-        auto *enc = new QuadTreeEncoder(isTextOutput, outputFile, oss, quality);
+        auto enc = new QuadTreeEncoder(isTextOutput, outputFile, oss, quality);
         source->Load();
 
         int width = source->width;
@@ -74,12 +71,12 @@ public:
         size_t numTransforms = transforms->ch[0].size() +
                                transforms->ch[1].size() + transforms->ch[2].size();
         sendEncodedInformation(width, height, static_cast<int>(numTransforms));
-        auto *dec = new Decoder(width, height, transforms->channels, isTextOutput, outputFile, oss);
+        Decoder* dec = new Decoder(width, height, transforms->channels, isTextOutput, outputFile, oss);
         for (int phase = 1; phase <= 5; phase++) {
             dec->Decode(transforms);
         }
         std::string outputFilename = "storageEncoded/" + tmpInputFilename.substr(0, pos) +'.' +source->extension;// путь сохранения
-        Image *producer = dec->GetNewImage(outputFilename, 0);
+        Image* producer = dec->GetNewImage(outputFilename, 0);
         producer->Save();
         HuffmanAlgo huffmanAlgo{isTextOutput, outputFile, oss};
         std::chrono::high_resolution_clock::time_point end = std::chrono::high_resolution_clock::now();
@@ -88,6 +85,7 @@ public:
         huffmanAlgo.encode(outputFilename,"Fractal",sizeInput,duration);
         remove(outputFilename.c_str());
         delete transforms;
+        delete dec;
         delete enc;
         delete source;
     };

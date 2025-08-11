@@ -1,11 +1,8 @@
 #ifndef ARCHIVATOR_ENCODER_H
 #define ARCHIVATOR_ENCODER_H
 #pragma once
-#include <cstdlib>
-#include <vector>
 #include "Image.h"
 #include "IFSTransform.h"
-#include "../../src/controller/Controller.h"
 
 class Encoder : public IController {
 public:
@@ -26,7 +23,7 @@ public:
         //this->view = view;
     }
 
-    virtual ~Encoder() = default;
+    ~Encoder() override = default;
 
     virtual Transforms *Encode(Image *source) = 0;
 

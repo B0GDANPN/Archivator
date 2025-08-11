@@ -19,7 +19,6 @@
 
 
 class View {
-private:
     static std::vector<std::wstring> selectFiles(const std::string &initialPath) {
         std::vector<std::wstring> selectedFiles;
 #ifdef _WIN32
@@ -127,7 +126,7 @@ private:
 
     class Button : public sf::Drawable, public sf::Transformable {
     public:
-        Button(const std::string &text, const sf::Vector2f &position, bool a, bool selected, sf::Font &font) : m_text(
+        Button(const std::string &text, const sf::Vector2f &position, bool a, bool selected, const sf::Font &font) : m_text(
                 text, font) {
             m_sprite.setFillColor(sf::Color::White);
             m_sprite.setOutlineThickness(2);

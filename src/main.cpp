@@ -1,6 +1,4 @@
-#include "controller/Controller.h"
-#include "view/View.h"
-#pragma once
+#include <view/View.hpp>
 
 int main() {
     View::start();

@@ -2,6 +2,29 @@
 #include <queue>
 #include <huffman/HuffmanAlgo.hpp>
 
+std::shared_ptr<HuffmanAlgo::HuffmanNode> HuffmanAlgo::build_huffman_tree(const std::vector<uint32_t>& freq){
+  std::priority_queue<
+          std::shared_ptr<HuffmanNode>,
+          std::vector<std::shared_ptr<HuffmanNode>>,
+          HuffmanNode::Cmp
+      > pq;
+
+  for (unsigned int i=0;i<256;i++) {
+    if (freq[i] == 0) continue;
+    pq.push(std::make_shared<HuffmanNode>(HuffmanNode{static_cast<unsigned char>(i),freq[i]}));
+  }
+
+  if (pq.empty()) return {};
+  if (pq.size() == 1) return pq.top();
+
+  while (pq.size() > 1) {
+    auto a = pq.top(); pq.pop();
+    auto b = pq.top(); pq.pop();
+    auto parent = std::make_shared<HuffmanNode>(HuffmanNode{0,a->freq + b->freq,(std::move(a).get()),(std::move(b).get())});
+    pq.push(std::move(parent));
+  }
+  return pq.top();
+}
 void HuffmanAlgo::send_common_information(const CommonInformation& common_information)
 {
   send_message("HuffmanAlgo{ ");
@@ -12,13 +35,13 @@ void HuffmanAlgo::send_error_information(const std::string& error)
 {
     IController::send_error_information("HuffmanAlgo{ " + error + "}\n");
 }
-void HuffmanAlgo::clear_huffman_root(const HuffmanNode* root)
+/*void HuffmanAlgo::clear_huffman_root(const HuffmanNode* root)
 {
   if (root->left!=nullptr){ clear_huffman_root(root->left); }
   if (root->right!=nullptr){ clear_huffman_root(root->right); }
   delete root;
-}
-void HuffmanAlgo::write_tree_to_stream(const HuffmanNode* root, BitStream& stream)
+}*/
+void HuffmanAlgo::write_tree_to_stream(const std::shared_ptr<HuffmanNode>& root, BitStream& stream)
 {
   if (root == nullptr)
     return;
@@ -31,17 +54,20 @@ void HuffmanAlgo::write_tree_to_stream(const HuffmanNode* root, BitStream& strea
     write_tree_to_stream(root->right, stream);
   }
 }
-HuffmanAlgo::HuffmanNode* HuffmanAlgo::read_tree_from_stream(BitStream& stream)
+std::shared_ptr<HuffmanAlgo::HuffmanNode> HuffmanAlgo::read_tree_from_stream(BitStream& stream)
 {
   if (stream.getBit()) {
-    unsigned char data = stream.getByte();
-    return new HuffmanNode(data, 0);
+    const unsigned char data = stream.getByte();
+    return std::make_shared<HuffmanNode>(data, 0);
   }
-  HuffmanNode *left = read_tree_from_stream(stream);
-    HuffmanNode *right = read_tree_from_stream(stream);
-    return new HuffmanNode('\0', 0, left, right);
+
+  auto left  = read_tree_from_stream(stream);
+  auto right = read_tree_from_stream(stream);
+
+  return std::make_shared<HuffmanNode>('\0', 0, std::move(left).get(), std::move(right).get());
 }
-void HuffmanAlgo::generate_codes(const HuffmanNode* node, const std::string& code, std::map<unsigned char, std::string>& codes)
+
+void HuffmanAlgo::generate_codes(const std::shared_ptr<HuffmanNode>& node, const std::string& code, std::map<unsigned char, std::string>& codes)
 {
   if (node == nullptr) return;
   if (node->left == nullptr && node->right == nullptr) {
@@ -67,36 +93,19 @@ void HuffmanAlgo::encode(const std::string& input_filename, const std::string& m
         std::ifstream input_file(input_filename, std::ios::binary);
         std::string text((std::istreambuf_iterator<char>(input_file)), (std::istreambuf_iterator<char>()));
         input_file.close();
-
-        int frequencies[256] = {};
+        std::vector<uint32_t> frequencies(256);
         for (unsigned char c: text) {
-            frequencies[c]++;
-        }
-        auto comp = [](const HuffmanNode *a, const HuffmanNode *b) { return a->freq > b->freq; };
-        std::priority_queue<HuffmanNode *, std::vector<HuffmanNode *>, decltype(comp)> pq(comp);
-        for (int i = 0; i < 256; i++) {
-            if (frequencies[i] != 0) {
-                pq.push(new HuffmanNode(static_cast<unsigned char>(i), frequencies[i]));
-            }
+          frequencies[c]++;
         }
 
-        while (pq.size() > 1) {
-            HuffmanNode *left = pq.top();
-            pq.pop();
-            HuffmanNode *right = pq.top();
-            pq.pop();
-            auto new_node = new HuffmanNode('\0', left->freq + right->freq, left, right);
-            pq.push(new_node);
-        }
-
-        HuffmanNode *root = pq.top();
+        auto root = build_huffman_tree(frequencies);
         std::map<unsigned char, std::string> codes;
 
         generate_codes(root, "", codes);
 
         BitStream bit_stream{};
         write_tree_to_stream(root, bit_stream);
-        clear_huffman_root(root);
+        //clear_huffman_root(root);
 
         for (unsigned char c: text) {
             std::string code = codes[c];
@@ -155,8 +164,8 @@ void HuffmanAlgo::decode(const std::string& input_filename)
 
         BitStream bit_stream(data);
 
-        HuffmanNode *root = read_tree_from_stream(bit_stream);
-        HuffmanNode *current = root;
+        auto root = read_tree_from_stream(bit_stream);
+        auto current = root;
 
         while (bit_stream.bitIndex < bit_stream.data.size() * 8 - max_idx) {
             if (bit_stream.getBit()) {
@@ -168,8 +177,7 @@ void HuffmanAlgo::decode(const std::string& input_filename)
                 out_file << current->data;
                 current = root;
             }
-        };
-        clear_huffman_root(root);
+        }
         out_file.close();
 
         int size_output = static_cast<int>(get_filesize(output_filename));

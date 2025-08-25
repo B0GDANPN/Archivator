@@ -1,9 +1,10 @@
 #ifndef ARCHIVATOR_IMAGE_HPP
 #define ARCHIVATOR_IMAGE_HPP
 #include <string>
+#include <vector>
 #include <controller/IController.hpp>
-typedef unsigned char pixel_value;
 
+using pixel_value = unsigned char;
 
 class Image final : public IController {
 public:
@@ -23,7 +24,7 @@ public:
     void send_common_information(const CommonInformation &common_information) override ;
 
     void send_error_information(const std::string &error) override ;
-    ~Image() override;
+    ~Image() override =default;
 
     static int next_multiple_of(int number, int multiple);
 
@@ -36,6 +37,20 @@ public:
     void set_channel_data(int channel, const pixel_value *buffer, int size_channel);
 
     void image_setup(const std::string &file_name);
+private:
+    std::vector<pixel_value> ch1_;
+    std::vector<pixel_value> ch2_;
+    std::vector<pixel_value> ch3_;
+
+    // Синхронизировать публичные указатели с внутренними буферами
+    void sync_raw_ptrs() noexcept {
+        image_data1 = ch1_.empty() ? nullptr : ch1_.data();
+        image_data2 = ch2_.empty() ? nullptr : ch2_.data();
+        image_data3 = ch3_.empty() ? nullptr : ch3_.data();
+    }
+
+    // Инициализация всех каналов серым 127
+    void init_grey_planes();
 };
 
 #endif

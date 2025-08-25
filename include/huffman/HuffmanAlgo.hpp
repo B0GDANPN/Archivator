@@ -8,36 +8,32 @@
 
 class HuffmanAlgo final : public IController {
     struct HuffmanNode {
-        int freq;
+        uint32_t freq;
         unsigned char data;
-        HuffmanNode *left;
-        HuffmanNode *right;
+        std::shared_ptr<HuffmanNode> left;
+        std::shared_ptr<HuffmanNode> right;
 
-        explicit HuffmanNode(unsigned char data, int frequency, HuffmanNode *left=nullptr, HuffmanNode *right=nullptr) : freq(frequency),
+        explicit HuffmanNode(unsigned char data, uint32_t frequency, HuffmanNode *left=nullptr, HuffmanNode *right=nullptr) : freq(frequency),
                                                                                                          data(data),
                                                                                                          left(left),
                                                                                                          right(right) {}
 
-        ~HuffmanNode() {
-            delete left;
-            delete right;
-        }
-
-        bool operator()(const HuffmanNode *a, const HuffmanNode *b) const {
-            return a->freq > b->freq;
-        }
+       struct Cmp {
+          bool operator()(const std::shared_ptr<HuffmanNode>& a,
+                          const std::shared_ptr<HuffmanNode>& b) const noexcept {
+            return a->freq > b->freq; // min-heap via greater
+          }};
 
     };
-
+   static std::shared_ptr<HuffmanNode> build_huffman_tree(const std::vector<uint32_t>& freq);
     void send_common_information(const CommonInformation &common_information) override;
 
     void send_error_information(const std::string &error) override ;
-    static void clear_huffman_root(const HuffmanNode * root);
-    static void write_tree_to_stream(const HuffmanNode *root, BitStream &stream) ;
+    static void write_tree_to_stream(const std::shared_ptr<HuffmanNode>& root, BitStream &stream) ;
 
-    static HuffmanNode *read_tree_from_stream(BitStream &stream);
+    static std::shared_ptr<HuffmanNode> read_tree_from_stream(BitStream &stream);
 
-    static void generate_codes(const HuffmanNode *node, const std::string &code, std::map<unsigned char, std::string> &codes);
+    static void generate_codes(const  std::shared_ptr<HuffmanNode>& node, const std::string &code, std::map<unsigned char, std::string> &codes);
 
 public:
     explicit HuffmanAlgo(bool is_text_output, const std::string &output_file, std::ostringstream &ref_oss)

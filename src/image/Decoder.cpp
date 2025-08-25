@@ -1,55 +1,123 @@
-
-#include <string>
+#include <utility>
 #include <vector>
-#include <image/Image.hpp>
-#include <image/IFSTransform.hpp>
+#include <stdexcept>
 #include <image/Decoder.hpp>
- ::Decoder::Decoder(int width, int height, int channels, bool is_text_output, const std::string& output_file, std::ostringstream& ref_oss): img_(is_text_output, output_file, ref_oss),
-                                           is_text_output(is_text_output), output_file(output_file),ref_oss(ref_oss) {
-        img_.channels = channels;
-        img_.width = width;
-        img_.height = height;
-        img_.original_size = width * height * channels;
-        img_.image_data1 = new pixel_value[width * height];
-        img_.image_data2 = new pixel_value[width * height];
-        img_.image_data3 = new pixel_value[width * height];
-      // Initialize to grey image
-        std::fill_n(img_.image_data1,width * height,127);
-        std::fill_n(img_.image_data2,width * height,127);
-        std::fill_n(img_.image_data3,width * height,127);
+#include <image/IFSTransform.hpp>
+
+// Конструктор: задаём метаданные и инициализируем буферы каналов серым
+Decoder::Decoder(int width,
+                 int height,
+                 int channels,
+                 bool is_text_output,
+                 std::string  output_file,
+                 std::ostringstream& ref_oss)
+    : is_text_output_(is_text_output)
+    , output_file_(std::move(output_file))
+    , ref_oss_(ref_oss)
+    , img_(is_text_output_, output_file_, ref_oss_)
+{
+    if (width <= 0 || height <= 0)
+        throw std::invalid_argument("Decoder: width/height must be > 0");
+    if (channels < 1 || channels > 3)
+        throw std::invalid_argument("Decoder: channels must be in [1..3]");
+
+    img_.width  = width;
+    img_.height = height;
+    img_.channels = channels;
+    img_.original_size = width * height * channels;
+
+    init_grey_channels();
+}
+
+void Decoder::init_grey_channels() {
+    const int plane = img_.width * img_.height;
+    std::vector<pixel_value> grey(static_cast<size_t>(plane), static_cast<pixel_value>(127));
+    // Гарантируем заполнение всех заявленных каналов (1..channels)
+    for (int c = 1; c <= img_.channels; ++c) {
+        img_.set_channel_data(c, grey.data(), plane);
     }
-void Decoder::decode(Transforms* transforms) {
+}
 
-        img_.channels = transforms->channels;
+void Decoder::ensure_channels(int required_channels) {
+    if (required_channels < 1 || required_channels > 3)
+        throw std::invalid_argument("ensure_channels_: channels out of range");
+    if (img_.channels >= required_channels) return;
 
-        for (int channel = 1; channel <= img_.channels; channel++) {
-            pixel_value *orig_image = img_.image_data1;
-            if (channel == 2)
-                orig_image = img_.image_data2;
-            else if (channel == 3)
-                orig_image = img_.image_data3;
+    const int plane = img_.width * img_.height;
+    std::vector<pixel_value> grey(static_cast<size_t>(plane), static_cast<pixel_value>(127));
+    for (int c = img_.channels + 1; c <= required_channels; ++c) {
+        img_.set_channel_data(c, grey.data(), plane);
+    }
+    img_.channels = required_channels;
+    img_.original_size = img_.width * img_.height * img_.channels;
+}
 
-            // Apple each transform at a time to this channel
-            transform::iterator iter = transforms->ch[channel - 1].begin();
-            for (; iter != transforms->ch[channel - 1].end(); ++iter) {
-                iter[0]->execute(orig_image, img_.width, orig_image, img_.width, false);
-            }
+void Decoder::decode(const Transforms& transforms)
+{
+    // Синхронизируем число каналов, если Transforms его задаёт
+    if (transforms.channels != 0) {
+        ensure_channels(transforms.channels);
+    }
+
+    // Применяем трансформы к каждому задействованному каналу (1..channels)
+    for (int channel = 1; channel <= img_.channels; ++channel) {
+        pixel_value* plane = nullptr;
+        if (channel == 1)      plane = img_.image_data1;
+        else if (channel == 2) plane = img_.image_data2;
+        else                   plane = img_.image_data3;
+
+        // Если по какой-то причине плоскость не инициализирована — это ошибка API
+        if (!plane) throw std::runtime_error("Decoder: channel plane is null");
+
+        // Прогоняем цепочку трансформов
+        // Ожидается, что transforms.ch[channel-1] — контейнер IFSTransform*
+        for (auto* t : transforms.ch[channel - 1]) {
+            if (!t) continue; // или assert(t && "IFSTransform must not be null");
+            t->execute(plane, img_.width, plane, img_.width, /*some flag*/ false);
         }
     }
-Image* Decoder::get_new_image(const std::string& file_name, int channel) const {
-        auto temp = new Image(is_text_output, output_file, ref_oss);
-        temp->image_setup(file_name);
-        temp->channels = img_.channels;
-        temp->width = img_.width;
-        temp->height = img_.height;
-        temp->original_size = img_.original_size;
-        int size_channel = img_.width * img_.height;
-        // Get according to channel number or all channels if number is zero
-        if (img_.channels >= 1 && (!channel || channel == 1))
-            temp->set_channel_data(1, img_.image_data1, size_channel);
-        if (img_.channels >= 2 && (!channel || channel == 2))
-            temp->set_channel_data((!channel ? 2 : 1), img_.image_data2, size_channel);
-        if (img_.channels >= 3 && (!channel || channel == 3))
-            temp->set_channel_data((!channel ? 3 : 1), img_.image_data3, size_channel);
-        return temp;
+}
+
+std::unique_ptr<Image>
+Decoder::make_image(const std::string& file_name, int channel) const
+{
+    // Собираем новое Image с такими же логгер-параметрами
+    auto out = std::make_unique<Image>(is_text_output_, output_file_, ref_oss_);
+    out->image_setup(file_name);
+
+    out->width  = img_.width;
+    out->height = img_.height;
+
+    const int plane = img_.width * img_.height;
+
+    if (channel == 0) {
+        // Все каналы, как есть
+        out->channels = img_.channels;
+        out->original_size = out->width * out->height * out->channels;
+
+        if (img_.channels >= 1 && img_.image_data1)
+            out->set_channel_data(1, img_.image_data1, plane);
+        if (img_.channels >= 2 && img_.image_data2)
+            out->set_channel_data(2, img_.image_data2, plane);
+        if (img_.channels >= 3 && img_.image_data3)
+            out->set_channel_data(3, img_.image_data3, plane);
+    } else {
+        // Только один указанный канал -> выводим как одно-канальное изображение
+        if (channel < 1 || channel > img_.channels)
+            throw std::out_of_range("make_image: channel out of range");
+
+        out->channels = 1;
+        out->original_size = out->width * out->height * out->channels;
+
+        const pixel_value* src = nullptr;
+        if (channel == 1)      src = img_.image_data1;
+        else if (channel == 2) src = img_.image_data2;
+        else                   src = img_.image_data3;
+
+        if (!src) throw std::runtime_error("make_image: source channel is null");
+
+        out->set_channel_data(1, src, plane);
     }
+
+    return out;
+}

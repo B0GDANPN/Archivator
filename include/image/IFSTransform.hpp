@@ -1,9 +1,10 @@
 #ifndef ARCHIVATOR_IFS_TRANSFORM_HPP
 #define ARCHIVATOR_IFS_TRANSFORM_HPP
 
-
 #include <vector>
-#include <image/Image.hpp>
+#include <memory>
+#include <cstddef>
+#include <image/Image.hpp> // pixel_value
 
 class IFSTransform {
 public:
@@ -16,55 +17,65 @@ public:
         SYM_VFLIP,
         SYM_RDFLIP,
     };
-    // Spatial transformation
-    size_t from_x;
-    size_t from_y;
-    size_t to_x;
-    size_t to_y;
-    size_t size;
 
-    // Symmetry operation
-    Sym symmetry;
+    // Пространственные параметры (координаты блока в исходном/целевом пространстве)
+    std::size_t from_x;
+    std::size_t from_y;
+    std::size_t to_x;
+    std::size_t to_y;
+    std::size_t size;
 
-    // Pixel intensity
+    // Симметрия и интенсивность
+    Sym    symmetry;
     double scale;
-    int offset;
-    static pixel_value *down_sample(const pixel_value *src, int src_width,
-                                  int start_x, int start_y, int target_size);
+    int    offset;
 
-
+    // Даунсэмпл 2x (возвращает target_size x target_size)
+    static std::vector<pixel_value>
+    down_sample(const pixel_value* src,
+                int src_width,
+                int start_x,
+                int start_y,
+                int target_size);
 
     IFSTransform(int from_x, int from_y, int to_x, int to_y, int size,
-               Sym symmetry, double scale, int offset) : from_x(from_x), from_y(from_y),
-                                                         to_x(to_x), to_y(to_y), size(size),
-                                                         symmetry(symmetry), scale(scale),
-                                                         offset(offset) {};
+                 Sym symmetry, double scale, int offset) noexcept
+        : from_x(static_cast<std::size_t>(from_x))
+        , from_y(static_cast<std::size_t>(from_y))
+        , to_x(static_cast<std::size_t>(to_x))
+        , to_y(static_cast<std::size_t>(to_y))
+        , size(static_cast<std::size_t>(size))
+        , symmetry(symmetry)
+        , scale(scale)
+        , offset(offset) {}
 
     ~IFSTransform() = default;
 
-    void execute(const pixel_value *src, int src_width,
-                 pixel_value *dest, int dest_width, bool downsampled) const;
-
+    // Если downsampled=false, выполняется внутренний даунсэмпл источника (во временный буфер).
+    void execute(const pixel_value* src, int src_width,
+                 pixel_value* dest, int dest_width,
+                 bool downsampled) const;
 
 private:
-
-    bool is_scanline_order() const;
-
-    bool is_positive_x() const;
-
-    bool is_positive_y() const;
+    bool is_scanline_order() const noexcept;
+    bool is_positive_x()    const noexcept;
+    bool is_positive_y()    const noexcept;
 };
 
-typedef std::vector<IFSTransform *> transform;
-struct  Transforms {
-    Transforms() {
-       channels = 0;
-    };
+// RAII-хранилище трансформов
+using transform = std::vector<std::unique_ptr<IFSTransform>>;
 
-    ~Transforms();
-    int get_size() const;
-    transform ch[3];
-    int channels;
+struct Transforms {
+    int channels{0};
+    transform ch[3];             // по каналам
+
+    Transforms() = default;
+    ~Transforms() = default;     // unique_ptr всё освободит
+
+    // Возвращает суммарное число трансформов (ранее название было "get_size")
+    int get_size() const noexcept {
+        return static_cast<int>(ch[0].size() + ch[1].size() + ch[2].size());
+    }
 };
 
 #endif

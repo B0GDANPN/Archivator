@@ -20,11 +20,10 @@ public:
    Decoder& operator=(Decoder&&) noexcept = delete;
    ~Decoder() = default;
 
-
-    void decode(const Transforms&transforms);
+    void decode(const Transforms& transforms);
     std::unique_ptr<Image> make_image(const std::string& file_name, int channel = 0) const;
-    Image* get_new_image(const std::string& file_name, int channel = 0) const {
-      return make_image(file_name, channel).release();
+    std::unique_ptr<Image> get_new_image(const std::string& file_name, int channel = 0) const {
+      return make_image(file_name, channel);
     }
 private:
   bool is_text_output_;

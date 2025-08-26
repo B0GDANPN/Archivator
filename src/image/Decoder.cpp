@@ -71,7 +71,8 @@ void Decoder::decode(const Transforms& transforms)
 
         // Прогоняем цепочку трансформов
         // Ожидается, что transforms.ch[channel-1] — контейнер IFSTransform*
-        for (auto* t : transforms.ch[channel - 1]) {
+
+        for (const auto& t  : transforms.ch[channel - 1]) {
             if (!t) continue; // или assert(t && "IFSTransform must not be null");
             t->execute(plane, img_.width, plane, img_.width, /*some flag*/ false);
         }

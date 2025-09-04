@@ -46,18 +46,18 @@ void HuffmanAlgo::write_tree_to_stream(const std::shared_ptr<HuffmanNode>& root,
   if (root == nullptr)
     return;
   if (root->left == nullptr && root->right == nullptr) {
-    stream.addBit(true);
-    stream.addByte(root->data);
+    stream.add_bit(true);
+    stream.add_byte(root->data);
   } else {
-    stream.addBit(false);
+    stream.add_bit(false);
     write_tree_to_stream(root->left, stream);
     write_tree_to_stream(root->right, stream);
   }
 }
 std::shared_ptr<HuffmanAlgo::HuffmanNode> HuffmanAlgo::read_tree_from_stream(BitStream& stream)
 {
-  if (stream.getBit()) {
-    const unsigned char data = stream.getByte();
+  if (stream.get_bit()) {
+    const unsigned char data = stream.get_byte();
     return std::make_shared<HuffmanNode>(data, 0);
   }
 
@@ -110,14 +110,14 @@ void HuffmanAlgo::encode(const std::string& input_filename, const std::string& m
         for (unsigned char c: text) {
             std::string code = codes[c];
             for (unsigned char bit: code) {
-                bit_stream.addBit(bit - static_cast<unsigned char>('0'));
+                bit_stream.add_bit(bit - static_cast<unsigned char>('0'));
             }
         }
 
         if (std::ofstream output_file(output_filename, std::ios::binary);output_file.is_open()) {
             size_t size = bit_stream.data.size();
             output_file.write(reinterpret_cast<const char *>(&size), sizeof(size_t));
-            uint8_t a = size * 8 - bit_stream.bitIndex;
+            uint8_t a = size * 8 - bit_stream.bit_index;
             output_file.write(reinterpret_cast<const char *>(&a), sizeof(uint8_t));
             output_file.write(reinterpret_cast<const char *>(bit_stream.data.data()), size);
             output_file.close();
@@ -167,8 +167,8 @@ void HuffmanAlgo::decode(const std::string& input_filename)
         auto root = read_tree_from_stream(bit_stream);
         auto current = root;
 
-        while (bit_stream.bitIndex < bit_stream.data.size() * 8 - max_idx) {
-            if (bit_stream.getBit()) {
+        while (bit_stream.bit_index < bit_stream.data.size() * 8 - max_idx) {
+            if (bit_stream.get_bit()) {
                 current = current->right;
             } else {
                 current = current->left;

@@ -79,32 +79,32 @@ void FlacAlgo::send_global_params() const  {
 }
 void FlacAlgo::rice_encode(BitStream &stream, int num)  {
     if (num < 0) {
-        stream.addBit(true);
+        stream.add_bit(true);
         num *= -1;
     } else {
-        stream.addBit(false);
+        stream.add_bit(false);
     }
     int q = num >> kGlobalK;
     for (int i = 0; i < q; ++i) {
-        stream.addBit(true);
+        stream.add_bit(true);
     }
-    stream.addBit(false);
+    stream.add_bit(false);
     for (int i = 0; i < kGlobalK; ++i) {
-        stream.addBit((num >> (kGlobalK - 1 - i)) & 1);
+        stream.add_bit((num >> (kGlobalK - 1 - i)) & 1);
     }
 }
 int FlacAlgo::rice_decode(BitStream &stream)  {
     int sgn = 1;
-    if (stream.getBit()) {
+    if (stream.get_bit()) {
         sgn = -1;
     }
     int q = 0;
-    while (stream.getBit() == 1) {
+    while (stream.get_bit() == 1) {
         q++;
     }
     int num = q << kGlobalK;
     for (int j = 0; j < kGlobalK; ++j) {
-        if (stream.getBit()) {
+        if (stream.get_bit()) {
             num |= (1 << (kGlobalK - 1 - j));
         }
     }
@@ -120,7 +120,7 @@ std::vector<uint8_t> FlacAlgo::encode_vector(const std::vector<int16_t> &vec)  {
 std::vector<int16_t> FlacAlgo::decode_vector(std::vector<uint8_t> data)  {
     BitStream stream(std::move(data));
     std::vector<int16_t> decoded;
-    while (stream.bitIndex < stream.data.size() * 8 - 7) {
+    while (stream.bit_index < stream.data.size() * 8 - 7) {
         decoded.push_back(rice_decode(stream));
     }
     return decoded;

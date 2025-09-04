@@ -20,10 +20,10 @@ void IController::send_message(const std::string &message) const  {
         }
     };
 void IController::send_common_information(const CommonInformation &common_information){
-        oss << "Compression ratio: 1:" << common_information.compressionRatio << '\n' <<
+        oss << "Compression ratio: 1:" << common_information.compression_ratio << '\n' <<
             "Time: " << common_information.time << "ms \n" <<
-            "Size input data: " << common_information.sizeInputData << " bytes\n" <<
-            "Size output data: " << common_information.sizeOutputData << " bytes\n";
+            "Size input data: " << common_information.size_input_data << " bytes\n" <<
+            "Size output data: " << common_information.size_output_data << " bytes\n";
         //std::string tmp = oss.str();
         //sendMessage(tmp);
     };

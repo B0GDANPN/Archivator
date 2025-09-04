@@ -59,7 +59,7 @@ void ::Controller::start(const std::string &str) {
                         //decode
                         quantization_algo.decode(dir_name);
                     }
-                } catch (std::exception) {
+                } catch (std::exception const&) {
                     send_error_information("Error, need correct options: " + Dto::to_string(arg));
                 }
                 break;
@@ -70,7 +70,7 @@ void ::Controller::start(const std::string &str) {
                     int quality = 600;
                     if (!arg.options_.empty()) quality = stoi(arg.options_[0]);
                     fractal_algo.encode(arg_name, quality);
-                } catch (std::exception) {
+                } catch (std::exception const&) {
                     send_error_information("Error, need correct options: " + Dto::to_string(arg));
                 }
                 break;
@@ -85,7 +85,7 @@ void ::Controller::start(const std::string &str) {
                         //decode
                         flac_algo.decode(arg_name);
                     }
-                } catch (std::exception) {
+                } catch (std::exception const&) {
                     send_error_information("Error, need correct options: " + Dto::to_string(arg) + '\n');
                 }
                 break;
@@ -100,7 +100,7 @@ void ::Controller::start(const std::string &str) {
                         //decode
                         huffman_algo.decode(arg_name);
                     }
-                } catch (std::exception) {
+                } catch (std::exception const&) {
                     send_error_information("Error, need correct options: " + Dto::to_string(arg) + '\n');
                 }
                 break;
